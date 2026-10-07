@@ -1,0 +1,25 @@
+# Distribution binaries and local build output
+*.app/
+app-files/app/
+app-files/lib/
+app-files/runtime/
+app-files/build/
+app-files/.build/
+*.zip
+*.jar
+*.class
+*.dylib
+*.dll
+*.exe
+# Private local files
+.DS_Store
+.env
+*.log
+logs/
+qa/
+credentials*
+activity-history*
+activity-buckets*
+activity.db
+analytics-settings.json
+update-preferences.json

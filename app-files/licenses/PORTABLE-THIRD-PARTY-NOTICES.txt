@@ -1,0 +1,43 @@
+PORTABLE PACKAGE - THIRD-PARTY NOTICES
+======================================
+
+Digital Marathon application: 2.1.27.
+Mac: Apple Silicon, macOS 11+; Windows: x64, Windows 10/11.
+Launchers share one distribution folder. This release gives the Pearl & Aqua
+artwork a slightly larger visible footprint in the macOS Dock and Finder.
+The artwork and in-app, certificate, Help and PDF icon presentation are unchanged.
+The approved transparency tabs, colors, dimensions and dragging are unchanged.
+Certificate JPEG export uses 97% quality and full-color 4:4:4 sampling.
+Smooth dragging, keyboard adjustment, neutral capture/privacy and
+tracking buttons, real interval details and compact themed notices are retained.
+The Full View, tooltips, launchers and documentation retain the 2.1.18
+improvements. The existing Mini View body, input tracking and saved-history
+behavior are preserved from the supplied 2.1.17 project. The Pearl & Aqua brand
+icon, selected Classic Award certificate design, and version 2.1.27 PDF guide are included as application
+resources.
+
+Eclipse Temurin OpenJDK 21.0.12.1+1-LTS
+------------------------------------
+Mac runtime: a jpackage runtime image built with Eclipse Temurin 21.0.12.1+1.
+Windows runtime: official Temurin x64 JRE 21.0.12.1+1.
+Temurin: https://adoptium.net/temurin/releases/?version=21
+Source: https://github.com/adoptium/jdk21u/tree/1c417fbfc2f7
+Build source: https://github.com/adoptium/temurin-build/tree/e6ba7dec3d07654074559310376a3ae89da5f4ac
+License: GPLv2 with the Classpath Exception and component-specific notices.
+The full supplied legal notices are retained at:
+  Digital Marathon.app/Contents/runtime/Contents/Home/legal/
+  app-files/runtime/windows-x64/legal/
+
+Windows runtime archive SHA-256:
+d35f31e712f0fcf6ac5a093edc90204fbff22f720ba3950bd09d331d5e621636
+
+JNativeHook 2.2.2 (Windows and original Linux launcher)
+-----------------------------------------------------
+Library: app-files/lib/jnativehook-2.2.2.jar
+License: LGPLv3 / GPLv3, as listed in the upstream package metadata.
+Supplied license texts: app-files/licenses/LGPL-3.0.txt and GPL-3.0.txt.
+Project and source: https://github.com/kwhat/jnativehook/tree/2.2.2
+Original binary: https://repo.maven.apache.org/maven2/com/github/kwhat/jnativehook/2.2.2/jnativehook-2.2.2.jar
+The binary was verified against the official Maven SHA-1 checksum.
+
+All runtime and input-library binaries are retained with their original notices.

@@ -1,0 +1,12 @@
+{
+  "provider": "github-portable",
+  "owner": "girishxp",
+  "repo": "DigitalMarathon",
+  "assetPattern": "^digital-marathon-cross-platform-v([0-9]+\\.[0-9]+\\.[0-9]+)-click-to-launch\\.zip$",
+  "checksumPattern": "SHA256SUMS-v<version>.txt",
+  "startupCheckDelayMs": 2500,
+  "checkIntervalMinutes": 15,
+  "remindLaterHours": 24,
+  "requireSha256": true,
+  "installation": "verified-download-manual-extract"
+}

@@ -1,0 +1,252 @@
+DIGITAL MARATHON 2.1.27 - QUICK START
+====================================
+
+START HERE
+----------
+On GitHub, download the combined Release asset:
+  digital-marathon-cross-platform-v2.1.27-click-to-launch.zip
+Source code (zip/tar.gz) archives lack the runtimes/JAR for direct launch.
+The public release becomes available after owner publication.
+
+1. Extract the ZIP completely.
+2. Open the extracted folder named: digital-marathon
+3. Double-click the launcher for your computer:
+
+   Apple Silicon Mac -> Digital Marathon.app
+   Windows x64       -> Start Digital Marathon - Windows.bat
+   Linux             -> Start Screen Recorder - Linux.sh
+
+Mac and Windows launchers are together in ONE folder. They include Java and
+launch directly: no Java installation, terminal, app build or internet needed.
+
+Supported: Apple Silicon Macs with macOS 11 or later; Windows 10/11 x64 PCs.
+This package does not include an Intel Mac app or a native Windows ARM runtime.
+
+Windows: keep the entire extracted digital-marathon folder together. The .bat
+launcher needs the app-files folder beside it. Do not run from inside the ZIP.
+
+Mac: open the app here or copy Digital Marathon.app to Applications. The Mac app
+is self-contained and can be moved on its own.
+
+
+MACOS
+-----
+1. Double-click Digital Marathon.app.
+2. If macOS blocks it, try right-click > Open, or after the blocked attempt use:
+      System Settings > Privacy & Security > Open Anyway
+3. Enable Digital Marathon in:
+      System Settings > Privacy & Security > Input Monitoring
+   Enable Accessibility as well if requested.
+4. The app retries automatically after permission is enabled. Quit and reopen
+   if macOS asks.
+
+The app has a local ad-hoc signature and is not notarized by Apple, so a
+first-open security prompt may appear. Apple Command Line Tools are not needed.
+
+Permissions help opens a compact window in your current theme. Use Open Input
+Monitoring or Open Accessibility for the matching System Settings pane.
+Detailed recovery steps remain in Help > Troubleshooting.
+
+If counting still fails after permissions appear enabled, run:
+
+   REPAIR_MAC_PERMISSIONS.command
+
+Then re-enable Digital Marathon in Input Monitoring/Accessibility and reopen it.
+If you moved the app to Applications, reopen it from Applications after repair.
+
+
+WINDOWS 10/11 X64
+-----------------
+1. Double-click Start Digital Marathon - Windows.bat.
+2. If Microsoft Defender SmartScreen appears, use More info > Run anyway when
+   available for a package you trust.
+3. Use the same .bat file for future launches. Keep it beside app-files.
+
+Java is already included. The Windows launcher does not build or download the
+application.
+
+
+LINUX
+-----
+Linux retains the original build-on-first-launch launcher. The first launch can
+take a few minutes and may download build tools. Later launches reuse the app.
+
+1. Open a terminal in the digital-marathon folder.
+2. If required, make the launcher executable:
+      chmod +x "Start Screen Recorder - Linux.sh"
+3. Run:
+      ./"Start Screen Recorder - Linux.sh"
+
+For Wayland input-access instructions, see:
+
+   app-files/docs/LINUX-WAYLAND.md
+
+
+USING THE APP
+-------------
+Digital Marathon remembers the view used when you close it. Close in Mini View
+and the next launch returns to Mini View at its last position. Close in Full
+View and the next launch restores Full View at its last position and size.
+
+Full View keeps every range, unit, Display PPI, custom date/time and Permissions
+control. Mouse distance is blue, Key presses green, Mouse clicks amber and
+Active time violet. The chart legend reads: Bars = activity; Line = trend.
+Hover or click anywhere along the trend line for the closest recorded interval's
+date/time, mouse distance, keys, clicks, active time and relative activity.
+Values are real interval totals, with no invented intermediate values. Its
+opaque detail card appears near that point and stays visible during live updates.
+Only the line point highlights; bars stay unchanged with no shaded interval band.
+The 0-100% scale is relative activity.
+
+Mini View keeps the existing body: Mouse and Clicks share the blue card, Keys
+stays in the green card, and the selected range and green Active timer remain
+below. Only the top toolbar is refreshed with the capture shield,
+transparency bar, appearance, pin and Full View.
+
+Both views use the existing small 0-75% transparency bar with a rounded tab
+handle. Its slightly deeper soft tint is clearer in both themes, with no halo.
+The bars, tab and surrounding controls keep their sizes: 0% is opaque and
+75% is most transparent.
+Drag the tab or click the bar to set a value. Smooth dragging changes transparency
+without moving the window; keyboard arrow-key adjustment remains available.
+Move the window from clear header space or Mini View's bottom range strip.
+
+The Pearl & Aqua brand icon uses modestly darker color and improved rendering
+for clearer small icons on your display. It is used for the Mac app icon and the running app's
+Dock/taskbar icon, plus Full View, certificates, Help and the PDF guide.
+The macOS Dock and Finder keep the approved larger icon.
+Icons inside the app, certificates, Help and PDF guide stay the same.
+Full View and Help keep the same header icon sizes. Small icons are filtered
+at the display's actual pixel resolution for clearer detail on Retina and other
+displays.
+Short tooltips appear away from window content and dismiss when the pointer
+leaves a control.
+
+Actions:
+- Pause Tracking excludes activity; Resume Tracking resumes collection.
+  This button stays neutral, even on hover/press; only its text and icon change.
+- Reset Session zeros the live session without deleting saved history.
+- Export CSV saves the selected period.
+- Clear History permanently deletes saved history after confirmation.
+
+Active time is elapsed collection time while tracking runs. It does not measure
+attention or productivity. At local midnight the live day starts again at zero
+while the completed day remains in history.
+
+Certificate:
+Choose a range and open My Digital Marathon Certificate. Enter Name on
+Certificate and choose Download Certificate. The JPEG saves to Downloads with
+a timestamped filename. Higher-quality JPEG export uses 97% quality and
+full-color 4:4:4 sampling to retain finer detail and colored edges.
+A compact Certificate saved notice shows the filename
+and folder. Use Open Certificate, Show in Folder or Copy file location for the
+complete path; Done closes the notice. File-opening actions depend on desktop
+support. The report and JPEG
+follow the selected Classic Award design. The JPEG uses warm paper, a fine
+gold double border, centered recipient name and the original gold laptop award
+badge at the top right. Totals, activity meter, achievements, finish-line verdict and
+award attribution remain available.
+
+Screen Capture Privacy:
+- In Full View, use "Hide from screenshots & sharing" beside the bottom buttons.
+- The toggle is off by default. When on, the app requests the capture exclusion
+  supported by your operating system or desktop.
+- Its outer surface and border stay neutral. Only the switch track and knob
+  change between on and off; the whole control does not turn blue.
+- The shield in the Full View and Mini View top toolbars shows whether protection
+  is applied. A neutral shield means it is off or unavailable.
+- macOS uses AppKit window-sharing protection. Windows uses
+  WDA_EXCLUDEFROMCAPTURE (Windows 10 version 2004+ provides intended exclusion).
+- Linux supports automatic exclusion on KDE Plasma 6.7+ through KWin. Other
+  Linux desktops do not currently expose an equivalent standard control.
+
+
+SLEEP / LID-CLOSE RESUME
+------------------------
+Digital Marathon automatically recovers its input monitor after sleep on macOS,
+Windows and Linux. It clears stale held-key/pointer state on resume. Windows/X11
+re-register the hook when needed; Linux Wayland reopens passive evdev readers
+if device nodes were recreated. Linux input devices are not grabbed, and native
+input callbacks hand tracker work to a dedicated worker.
+
+
+TROUBLESHOOTING
+---------------
+Mac: check any error shown by the app. For input-counting problems, check Input
+Monitoring/Accessibility or use REPAIR_MAC_PERMISSIONS.command. The direct app
+launcher does not produce a separate startup log.
+
+Windows launch logs:
+
+   %LOCALAPPDATA%\DigitalMarathon\logs
+
+If Windows reports missing files, extract the complete ZIP again and keep the
+folder together.
+
+Linux startup/build log:
+
+   app-files/digital-marathon-startup.log
+
+Linux built application:
+
+   app-files/build/linux/Digital Marathon
+
+
+PRIVACY AND SAVED HISTORY
+-------------------------
+Digital Marathon stores numerical activity totals. It does NOT store typed text,
+individual key identities, clipboard contents, screenshots, application names,
+or window titles.
+
+Saved activity data stays on your computer:
+
+   macOS/Linux -> ~/.digital_marathon/activity-buckets.dat
+   Windows     -> %APPDATA%\DigitalMarathon\activity-buckets.dat
+
+Moving the launch folder or Mac app does not move or erase saved history.
+
+For the version 2.1.27 product features, launch and usage guide, open:
+
+   app-files/docs/Digital-Marathon-Product-Guide.pdf
+
+This guide, README.md and the PDF use the same current launch instructions.
+CHANGELOG.md lists the release changes. Source, platform help and license
+notices are included in app-files and the runtimes.
+
+
+UPDATES AND OPTIONAL USAGE
+--------------------------
+Open Help > Updates & Privacy for Check for Updates and the two preferences.
+Automatic checks run at startup and every 15 minutes while the app is open.
+Choose Download Update, Remind Me Later (24 hours), or Skip This Version.
+A manual check can still show a skipped release. There are no notifications
+while the app is closed. Downloads require a matching release SHA-256 checksum.
+
+To install, quit the app, extract the verified new ZIP and open its launcher.
+The app does not silently replace itself. Existing activity history stays local.
+
+Anonymous usage is off until your explicit choice. This release uses the
+configured existing PulseStudio PostHog project; Digital Marathon's insights
+and dashboard save their own app_id = digital-marathon filter. All its events
+start with digital_marathon_; the existing PulseStudio dashboard stays unchanged.
+There is no new project, billing plan or card setup. When enabled, app/runtime details,
+random installation/session IDs, launch/session timing and limited state,
+feature, update and error categories are sent. App-session timing is separate from tracked Active time.
+Input counts, activity totals, names, paths, ranges, history and exports are
+never transmitted. Source IP exists in transit; no location is derived by the
+app, and requests disable GeoIP enrichment. There is no person-profile creation,
+autocapture or session recording.
+You can turn reporting off permanently in Updates & Privacy. See ANALYTICS.md.
+
+Owner dashboard:
+  https://us.posthog.com/project/580438/dashboard/2181978
+
+OWNER PUBLISHING
+----------------
+Publish Digital Marathon.command (Mac) and Publish Digital Marathon - Windows.bat
+(Windows) are owner tools requiring Git and GitHub CLI. They require a reviewed
+source snapshot and the exact ZIP/checksum, support --dry-run, and verify a draft
+before marking it Latest. See PUBLISHING.md. Normal app use needs neither tool.
+
+Only publishing a newer Release as Latest makes running-app update prompts
+available. Pushing a source commit alone does not trigger them.

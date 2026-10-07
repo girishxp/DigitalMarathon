@@ -1,0 +1,3 @@
+# Grants the active local desktop user access to input event devices through systemd-logind.
+# Review the security implications in app-files/docs/LINUX-WAYLAND.md before installing.
+SUBSYSTEM=="input", KERNEL=="event*", TAG+="uaccess"
