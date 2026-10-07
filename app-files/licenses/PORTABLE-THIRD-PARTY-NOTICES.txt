@@ -1,7 +1,7 @@
 PORTABLE PACKAGE - THIRD-PARTY NOTICES
 ======================================
 
-Digital Marathon application: 2.1.27.
+Digital Marathon application: 2.1.28.
 Mac: Apple Silicon, macOS 11+; Windows: x64, Windows 10/11.
 Launchers share one distribution folder. This release gives the Pearl & Aqua
 artwork a slightly larger visible footprint in the macOS Dock and Finder.
@@ -13,7 +13,7 @@ tracking buttons, real interval details and compact themed notices are retained.
 The Full View, tooltips, launchers and documentation retain the 2.1.18
 improvements. The existing Mini View body, input tracking and saved-history
 behavior are preserved from the supplied 2.1.17 project. The Pearl & Aqua brand
-icon, selected Classic Award certificate design, and version 2.1.27 PDF guide are included as application
+icon, selected Classic Award certificate design, and version 2.1.28 PDF guide are included as application
 resources.
 
 Eclipse Temurin OpenJDK 21.0.12.1+1-LTS

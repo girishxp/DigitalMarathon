@@ -78,8 +78,8 @@ final class AnalyticsManager implements AutoCloseable {
     private final Configuration configuration;
     private final Transport transport;
     private final ScheduledExecutorService executor;
-    private final ExecutorService preferenceWriter = Executors.newSingleThreadExecutor(runnable -> {
-        Thread thread = new Thread(runnable, "digital-marathon-analytics-preferences");
+    private final ExecutorService identityWriter = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "digital-marathon-analytics-identity");
         thread.setDaemon(true);
         return thread;
     });
@@ -89,11 +89,9 @@ final class AnalyticsManager implements AutoCloseable {
     private final String sessionId = UUID.randomUUID().toString();
     private final long firstSeenAt;
     private final ArrayDeque<QueuedEvent> queue = new ArrayDeque<>();
-    private Boolean preference;
     private long launchCount;
     private long startedAt;
     private long lastSeenAt;
-    private long preferenceChangedAt;
     private long generation;
     private boolean started;
     private boolean closing;
@@ -123,14 +121,13 @@ final class AnalyticsManager implements AutoCloseable {
         this.clock = clock;
         this.forcedNetworkDisabled = forcedNetworkDisabled;
         Map<String, Object> saved = readSettings(settingsFile);
+        // This release reports automatically; legacy off preferences are obsolete.
         this.installId = validUuid(saved.get("installId"))
                 ? saved.get("installId").toString() : UUID.randomUUID().toString();
         long now = Math.max(0, clock.getAsLong());
         this.firstSeenAt = nonnegativeLong(saved.get("firstSeenAt"), now);
         this.lastSeenAt = now;
         this.launchCount = Math.min(1_000_000, nonnegativeLong(saved.get("launchCount"), 0));
-        this.preferenceChangedAt = nonnegativeLong(saved.get("preferenceChangedAt"), 0);
-        this.preference = saved.get("enabled") instanceof Boolean value ? value : null;
     }
 
     synchronized boolean configured() {
@@ -138,28 +135,7 @@ final class AnalyticsManager implements AutoCloseable {
     }
 
     synchronized boolean enabled() {
-        return !stopped && configured() && (preference != null ? preference : configuration.defaultEnabled());
-    }
-
-    synchronized void setEnabled(boolean value) {
-        if (stopped || closing) return;
-        preference = value;
-        preferenceChangedAt = Math.max(0, clock.getAsLong());
-        saveSettingsAsync();
-        if (!enabled()) {
-            generation++;
-            queue.clear();
-            cancel(flushTask);
-            flushTask = null;
-            cancel(heartbeatTask);
-            heartbeatTask = null;
-            CompletableFuture<Integer> request = inFlight;
-            inFlight = null;
-            if (request != null) request.cancel(true);
-        } else if (started) {
-            startHeartbeat();
-            enqueue("analytics_enabled", Map.of());
-        }
+        return !stopped && configured();
     }
 
     synchronized void start() {
@@ -168,7 +144,6 @@ final class AnalyticsManager implements AutoCloseable {
         startedAt = Math.max(0, clock.getAsLong());
         lastSeenAt = startedAt;
         launchCount = Math.min(1_000_000, launchCount + 1);
-        if (preference == null && configured()) preference = configuration.defaultEnabled();
         saveSettingsAsync();
         if (enabled()) {
             enqueue("app_started", Map.of());
@@ -250,8 +225,7 @@ final class AnalyticsManager implements AutoCloseable {
         long requestGeneration = generation;
         CompletableFuture<Integer> request;
         try {
-            // Sending is started under the same lock as opt-out. Disable cancels
-            // this future and invalidates its completion before clearing the queue.
+            // Shutdown invalidates late completions and cancels pending requests.
             request = transport.send(configuration.endpoint(), JsonCodec.stringify(payload), currentVersion);
             inFlight = request;
         } catch (RuntimeException ignored) {
@@ -307,13 +281,13 @@ final class AnalyticsManager implements AutoCloseable {
             executor.schedule(this::stop, CLOSE_GRACE_MS, TimeUnit.MILLISECONDS);
         }
         try {
-            // Only a tiny local preference write is drained, on an independent
+            // Only a tiny local identity write is drained, on an independent
             // executor. A blocked or outstanding HTTP request is never awaited.
             localWrite.get(250, TimeUnit.MILLISECONDS);
         } catch (InterruptedException ignored) {
             Thread.currentThread().interrupt();
         } catch (Exception ignored) { }
-        preferenceWriter.shutdown();
+        identityWriter.shutdown();
     }
 
     private synchronized void stop() {
@@ -338,10 +312,8 @@ final class AnalyticsManager implements AutoCloseable {
         saved.put("firstSeenAt", firstSeenAt);
         saved.put("lastSeenAt", lastSeenAt);
         saved.put("launchCount", launchCount);
-        if (preference != null) saved.put("enabled", preference);
-        if (preferenceChangedAt > 0) saved.put("preferenceChangedAt", preferenceChangedAt);
         try {
-            return CompletableFuture.runAsync(() -> writeSettings(saved), preferenceWriter);
+            return CompletableFuture.runAsync(() -> writeSettings(saved), identityWriter);
         } catch (RejectedExecutionException ignored) {
             return CompletableFuture.completedFuture(null);
         }
@@ -359,7 +331,7 @@ final class AnalyticsManager implements AutoCloseable {
                 Files.move(temporary, settingsFile, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (Exception ignored) {
-            // Failure to save analytics preferences cannot interrupt tracking.
+            // Failure to save analytics identity cannot interrupt tracking.
         } finally {
             try { Files.deleteIfExists(temporary); } catch (Exception ignored) { }
         }
@@ -415,7 +387,7 @@ final class AnalyticsManager implements AutoCloseable {
 
     private record QueuedEvent(Map<String, Object> value, int attempts) { }
 
-    record Configuration(URI endpoint, String publicToken, boolean defaultEnabled, Duration heartbeat) {
+    record Configuration(URI endpoint, String publicToken, Duration heartbeat) {
         boolean valid() {
             return endpoint != null && "https".equalsIgnoreCase(endpoint.getScheme())
                     && endpoint.getHost() != null && endpoint.getUserInfo() == null
@@ -444,16 +416,15 @@ final class AnalyticsManager implements AutoCloseable {
                         || host.getUserInfo() != null || host.getQuery() != null || host.getFragment() != null
                         || !(host.getPath().isEmpty() || host.getPath().equals("/"))) return unconfigured();
                 String key = String.valueOf(values.getOrDefault("apiKey", ""));
-                boolean defaultEnabled = values.get("defaultEnabled") instanceof Boolean value && value;
                 long minutes = Math.max(5, Math.min(60, nonnegativeLong(values.get("heartbeatMinutes"), 10)));
-                return new Configuration(host.resolve("/batch/"), key, defaultEnabled, Duration.ofMinutes(minutes));
+                return new Configuration(host.resolve("/batch/"), key, Duration.ofMinutes(minutes));
             } catch (Exception ignored) {
                 return unconfigured();
             }
         }
 
         static Configuration unconfigured() {
-            return new Configuration(null, "", false, Duration.ofMinutes(10));
+            return new Configuration(null, "", Duration.ofMinutes(10));
         }
     }
 
@@ -466,6 +437,9 @@ final class AnalyticsManager implements AutoCloseable {
                 .followRedirects(HttpClient.Redirect.NEVER).build();
 
         @Override public CompletableFuture<Integer> send(URI endpoint, String payload, String version) {
+            if (Boolean.getBoolean("digitalmarathon.networkDisabled")) {
+                return CompletableFuture.failedFuture(new IllegalStateException("Analytics networking disabled for isolated verification"));
+            }
             HttpRequest request = HttpRequest.newBuilder(endpoint).timeout(Duration.ofSeconds(10))
                     .header("Content-Type", "application/json")
                     .header("User-Agent", "DigitalMarathon/" + version)

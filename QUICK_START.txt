@@ -1,10 +1,10 @@
-DIGITAL MARATHON 2.1.27 - QUICK START
+DIGITAL MARATHON 2.1.28 - QUICK START
 ====================================
 
 START HERE
 ----------
 On GitHub, download the combined Release asset:
-  digital-marathon-cross-platform-v2.1.27-click-to-launch.zip
+  digital-marathon-cross-platform-v2.1.28-click-to-launch.zip
 Source code (zip/tar.gz) archives lack the runtimes/JAR for direct launch.
 The public release becomes available after owner publication.
 
@@ -205,7 +205,7 @@ Saved activity data stays on your computer:
 
 Moving the launch folder or Mac app does not move or erase saved history.
 
-For the version 2.1.27 product features, launch and usage guide, open:
+For the version 2.1.28 product features, launch and usage guide, open:
 
    app-files/docs/Digital-Marathon-Product-Guide.pdf
 
@@ -214,39 +214,49 @@ CHANGELOG.md lists the release changes. Source, platform help and license
 notices are included in app-files and the runtimes.
 
 
-UPDATES AND OPTIONAL USAGE
---------------------------
-Open Help > Updates & Privacy for Check for Updates and the two preferences.
+UPDATES AND BASIC USAGE
+-----------------------
+Open Help > About and choose Check for updates for a manual check.
 Automatic checks run at startup and every 15 minutes while the app is open.
 Choose Download Update, Remind Me Later (24 hours), or Skip This Version.
 A manual check can still show a skipped release. There are no notifications
 while the app is closed. Downloads require a matching release SHA-256 checksum.
 
-To install, quit the app, extract the verified new ZIP and open its launcher.
-The app does not silently replace itself. Existing activity history stays local.
+The update downloads and verifies in the background while tracking continues.
+You may extract the verified ZIP into a new folder while using the current
+session. When ready, quit the current app and open the new launcher. Restarting is
+required only to activate the new build; the app does not replace loaded Java
+or native input components in place. Existing activity history stays local.
 
-Anonymous usage is off until your explicit choice. This release uses the
-configured existing PulseStudio PostHog project; Digital Marathon's insights
-and dashboard save their own app_id = digital-marathon filter. All its events
-start with digital_marathon_; the existing PulseStudio dashboard stays unchanged.
-There is no new project, billing plan or card setup. When enabled, app/runtime details,
-random installation/session IDs, launch/session timing and limited state,
-feature, update and error categories are sent. App-session timing is separate from tracked Active time.
-Input counts, activity totals, names, paths, ranges, history and exports are
+Basic usage analytics starts automatically at launch, including installations
+with an older saved opt-out. There is no first-run choice or analytics toggle
+in Help. Automatic update checks are also restored if an old preference had
+disabled them; no update-check switch is shown. This release uses the existing PulseStudio
+PostHog project; Digital Marathon's insights and dashboard save their own
+app_id = digital-marathon filter. All its events start with digital_marathon_;
+the existing PulseStudio dashboard stays unchanged. There is no new project,
+billing plan or card setup.
+
+Usage events contain app/runtime details, random installation/session IDs,
+launch/session timing and limited state, feature, update and error categories.
+App-session timing is separate from tracked Active time. Input counts, activity
+totals, typed text, certificate names, paths, ranges, history and exports are
 never transmitted. Source IP exists in transit; no location is derived by the
 app, and requests disable GeoIP enrichment. There is no person-profile creation,
-autocapture or session recording.
-You can turn reporting off permanently in Updates & Privacy. See ANALYTICS.md.
+autocapture or session recording. See ANALYTICS.md for details.
 
 Owner dashboard:
   https://us.posthog.com/project/580438/dashboard/2181978
 
 OWNER PUBLISHING
 ----------------
-Publish Digital Marathon.command (Mac) and Publish Digital Marathon - Windows.bat
-(Windows) are owner tools requiring Git and GitHub CLI. They require a reviewed
+Use Publish Digital Marathon.command on Mac and
+Publish Digital Marathon - Windows.bat on Windows. A .command file does not
+run on Windows; Publish PulseStudio.command belongs to the PulseStudio app.
+These owner tools require Git and GitHub CLI. They require a reviewed
 source snapshot and the exact ZIP/checksum, support --dry-run, and verify a draft
 before marking it Latest. See PUBLISHING.md. Normal app use needs neither tool.
 
-Only publishing a newer Release as Latest makes running-app update prompts
-available. Pushing a source commit alone does not trigger them.
+Publishing a newer Release as Latest from either Digital Marathon publisher
+makes prompts available in running Digital Marathon 2.1.27 or later with
+automatic checks enabled. Pushing a source commit alone does not trigger them.

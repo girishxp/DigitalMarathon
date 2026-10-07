@@ -2,8 +2,8 @@
   "provider": "posthog",
   "host": "https://us.i.posthog.com",
   "apiKey": "phc_oJEXte2DUT3Pvoxx3twpNnUDqXzZbuFfQpBnneer6Ljr",
-  "defaultEnabled": false,
   "heartbeatMinutes": 10,
   "dashboardUrl": "https://us.posthog.com/project/580438/dashboard/2181978",
-  "setup": "Connected to the existing PulseStudio project. Digital Marathon events use digital_marathon_ names and every insight filters app_id = digital-marathon."
+  "setup": "Connected to the existing PulseStudio project. Digital Marathon events use digital_marathon_ names and every insight filters app_id = digital-marathon.",
+  "mode": "automatic"
 }

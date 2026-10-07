@@ -69,8 +69,7 @@ final class HelpCenterDialog extends JDialog {
         sections.put("Overview", page("Overview", overviewHtml()));
         sections.put("Help", page("Using the tracker", helpHtml()));
         sections.put("Troubleshooting", page("Troubleshooting", troubleshootingHtml()));
-        sections.put("About", page("About Digital Marathon", aboutHtml()));
-        sections.put("Updates & Privacy", updatesPrivacyPage());
+        sections.put("About", aboutPage());
         sections.put("Contact Us", contactPage());
 
         navigation = new JList<>(sections.keySet().toArray(String[]::new));
@@ -186,11 +185,8 @@ final class HelpCenterDialog extends JDialog {
         return panel;
     }
 
-    private JComponent updatesPrivacyPage() {
-        JComponent panel = page("Updates & Privacy", "<p>Digital Marathon checks for public GitHub releases after launch and every 15 minutes while open. New releases show an in-app notice. You can download the verified ZIP, be reminded in 24 hours, or skip that version.</p>"
-                + "<p>After downloading, quit the app, extract the complete new folder and open its Mac app or Windows launcher. Your saved history and settings remain in your user profile. No silent replacement takes place.</p>"
-                + "<p>Optional anonymous analytics include a random installation ID, app version, OS, sessions, feature use and update use. Your activity totals, raw input, coordinates, certificate names, file paths and saved history are never sent.</p>"
-                + "<p>Publishing and the analytics owner dashboard are explained in the included PUBLISHING.md and ANALYTICS.md files.</p>");
+    private JComponent aboutPage() {
+        JComponent panel = page("About Digital Marathon", aboutHtml());
         JPanel controls = new JPanel(); controls.setOpaque(false); controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
         JTextArea status = new JTextArea(services == null ? "Online services are unavailable in this test window." : services.status(), 2, 40);
         status.setEditable(false); status.setFocusable(false); status.setOpaque(false);
@@ -201,39 +197,15 @@ final class HelpCenterDialog extends JDialog {
         check.setEnabled(services != null); check.addActionListener(e -> {
             check.setEnabled(false); status.setText("Checking for updates…"); services.updates.checkNow();
         });
-        JToggleButton automatic = settingSwitch("Automatic update checks", services != null && services.updates.autoCheckEnabled());
-        automatic.setEnabled(services != null);
-        automatic.addActionListener(e -> { services.updates.setAutoCheckEnabled(automatic.isSelected()); automatic.setText(automatic.isSelected() ? "On" : "Off"); });
-        JToggleButton analytics = settingSwitch("Anonymous usage analytics", services != null && services.analytics.enabled());
-        analytics.setEnabled(services != null && services.analytics.configured());
-        analytics.addActionListener(e -> { services.setAnalyticsEnabled(analytics.isSelected()); analytics.setText(analytics.isSelected() ? "On" : "Off"); });
-        controls.add(settingsRow("Automatic update checks", automatic)); controls.add(Box.createVerticalStrut(8));
-        controls.add(settingsRow("Anonymous usage analytics", analytics)); controls.add(Box.createVerticalStrut(10));
-        if (services != null && !services.analytics.configured()) { JLabel note = new JLabel("Analytics are off until a project is configured."); note.setForeground(muted); controls.add(note); controls.add(Box.createVerticalStrut(8)); }
         controls.add(check); controls.add(Box.createVerticalStrut(8)); controls.add(status);
         panel.add(controls, BorderLayout.SOUTH);
         if (services != null) {
             serviceObserver = () -> {
                 status.setText(services.status()); check.setEnabled(true);
-                analytics.setSelected(services.analytics.enabled());
-                analytics.setText(analytics.isSelected() ? "On" : "Off");
             };
             services.observe(serviceObserver);
         }
         return panel;
-    }
-
-    private JPanel settingsRow(String label, JToggleButton control) {
-        JPanel row = new JPanel(new BorderLayout(10, 0)); row.setOpaque(false);
-        JLabel heading = new JLabel(label); heading.setForeground(text); row.add(heading, BorderLayout.CENTER); row.add(control, BorderLayout.EAST);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34)); return row;
-    }
-
-    private JToggleButton settingSwitch(String name, boolean selected) {
-        JToggleButton toggle = new JToggleButton(selected ? "On" : "Off", selected); toggle.setUI(new AppleHelpButtonUI(false));
-        toggle.setContentAreaFilled(false); toggle.setOpaque(false); toggle.setBorderPainted(false);
-        toggle.setFocusPainted(false); toggle.setBackground(surface); toggle.setForeground(text); toggle.setBorder(new EmptyBorder(7,14,7,14));
-        toggle.getAccessibleContext().setAccessibleName(name); return toggle;
     }
 
     @Override public void dispose() {
@@ -349,14 +321,16 @@ final class HelpCenterDialog extends JDialog {
                 + "<h2>Windows: Launcher reports an error</h2><p>Extract the entire ZIP before opening <b>Start Digital Marathon - Windows.bat</b>. Keep the .bat file beside the complete <b>app-files</b> folder. Review the startup and application logs in <code>%LOCALAPPDATA%\\DigitalMarathon\\logs</code>. The bundled launcher does not need a Java installation, build or download.</p>"
                 + "<h2>Linux Wayland</h2><p>Wayland restricts global input. Follow LINUX-WAYLAND.md or QUICK_START.txt to grant the required <code>/dev/input/event*</code> access using the included udev rule or the distribution's input group.</p>"
                 + "<h2>Linux: Build or launch problem</h2><p>Review <code>app-files/digital-marathon-startup.log</code>. Linux retains its original launcher and builds the application on first launch.</p>"
-                + "<h2>Current launch instructions</h2><p>The top-level <b>QUICK_START.txt</b>, README and version 2.1.27 PDF product guide describe the same shared folder and click-to-launch Mac and Windows files.</p>"
+                + "<h2>Current launch instructions</h2><p>The top-level <b>QUICK_START.txt</b>, README and version 2.1.28 PDF product guide describe the same shared folder and click-to-launch Mac and Windows files.</p>"
                 + "<h2>Mouse distance seems inaccurate</h2><p>Verify Display PPI. Metric/imperial values estimate screen cursor travel; pointer acceleration, scaling and multiple displays can change the relationship to physical desk movement.</p>";
     }
 
     private static String aboutHtml() {
         return "<p><b>Digital Marathon</b><br><span class='version'>Version " + VERSION + "</span></p>"
-                + "<p>A privacy-first cross-platform desktop utility for macOS, Windows and Linux that turns mouse travel, keyboard presses, clicks and active time into live totals and long-term trends.</p>"
+                + "<p>A cross-platform desktop utility for macOS, Windows and Linux that turns mouse travel, keyboard presses, clicks and active time into live totals and long-term trends.</p>"
                 + "<h2>Designed for</h2><ul><li>Personal activity awareness</li><li>Ergonomic habit reviews</li><li>Work-pattern comparison</li><li>Long-term digital activity curiosity</li></ul>"
+                + "<h2>Updates</h2><p>Checks run at startup and every 15 minutes while the app is open. Download verified updates while continuing your session. Extract into a new folder; restart when ready to load the new version. Your local history stays in place.</p>"
+                + "<h2>Basic usage reporting</h2><p>App version, platform, sessions, feature use and update outcomes are reported automatically. Activity totals, typed text, certificate names, file paths and history stay local. No session recording or person profiles are created.</p>"
                 + "<p class='note'>Created by Girish Gupta. Copyright 2026. The shared package includes the complete product guide, quick start, release notes, platform help, source, resources and applicable open-source license texts.</p>";
     }
 

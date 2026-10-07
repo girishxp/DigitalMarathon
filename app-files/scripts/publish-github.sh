@@ -1,7 +1,7 @@
 #!/bin/bash
 # Owner-operated publisher. No credentials are embedded and dry-run never mutates GitHub.
 set -euo pipefail
-VERSION=2.1.27
+VERSION=2.1.28
 GITHUB_REPO=girishxp/DigitalMarathon
 # Explicit host keeps an unrelated enterprise login or GH_HOST out of this publisher.
 GITHUB_TARGET="github.com/$GITHUB_REPO"

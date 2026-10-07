@@ -8,23 +8,21 @@ import java.awt.*;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.prefs.Preferences;
 
-/** Optional online services; tracking and local history work independently. */
+/** Online product services; tracking and local history work independently. */
 final class AppServices implements AutoCloseable {
     static final String VERSION = runningVersion();
     private static String runningVersion() {
         String manifest = AppServices.class.getPackage().getImplementationVersion();
         if (validVersion(manifest)) return manifest;
         String launcher = System.getProperty("jpackage.app-version", "");
-        return validVersion(launcher) ? launcher : "2.1.27";
+        return validVersion(launcher) ? launcher : "2.1.28";
     }
     private static boolean validVersion(String value) {
         return value != null && value.matches("(?:0|[1-9][0-9]{0,8})\\.(?:0|[1-9][0-9]{0,8})\\.(?:0|[1-9][0-9]{0,8})");
     }
     final UpdateManager updates;
     final AnalyticsManager analytics;
-    private final Preferences preferences = Preferences.userNodeForPackage(AppServices.class);
     private final CopyOnWriteArrayList<Runnable> observers = new CopyOnWriteArrayList<>();
     private TrackerWindow owner;
     private JDialog progress;
@@ -32,7 +30,6 @@ final class AppServices implements AutoCloseable {
     private volatile String status = "Checks run while Digital Marathon is open.";
     private boolean releaseShowing;
     private boolean analyticsStarted;
-    private JDialog consentNotice;
 
     AppServices(Path directory) {
         this(new UpdateManager(VERSION, directory), new AnalyticsManager(VERSION, directory));
@@ -50,36 +47,10 @@ final class AppServices implements AutoCloseable {
         SwingUtilities.invokeLater(() -> observers.forEach(Runnable::run));
     }
     void capture(String event, Map<String, Object> values) { analytics.capture(event, values); }
-    void setAnalyticsEnabled(boolean enabled) {
-        analytics.setEnabled(enabled);
-        preferences.putBoolean("analyticsNoticeShown", true);
-        if (consentNotice != null) { consentNotice.dispose(); consentNotice = null; }
-        startAnalytics();
-        SwingUtilities.invokeLater(() -> observers.forEach(Runnable::run));
-    }
     void start(TrackerWindow window) {
         owner = window;
+        startAnalytics();
         startUpdates();
-        if (analytics.configured() && !preferences.getBoolean("analyticsNoticeShown", false)) {
-            JDialog notice = dialog("Updates & Privacy");
-            consentNotice = notice;
-            JPanel content = content("Help improve Digital Marathon",
-                    "Optional anonymous analytics report app version, operating system, sessions, feature use and update use. "
-                    + "Your mouse/key/click totals, activity history, certificate names and file paths are never sent. "
-                    + "Change this choice any time in Help → Updates & Privacy.");
-            JButton off = button("Keep analytics off", false);
-            off.addActionListener(e -> setAnalyticsEnabled(false));
-            JButton on = button("Enable anonymous analytics", true);
-            on.addActionListener(e -> setAnalyticsEnabled(true));
-            content.add(row(off, on));
-            notice.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-            notice.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override public void windowClosing(java.awt.event.WindowEvent event) {
-                    setAnalyticsEnabled(false);
-                }
-            });
-            show(notice, content, 510);
-        } else startAnalytics();
     }
     private void startAnalytics() {
         if (!analyticsStarted) { analyticsStarted = true; analytics.start(); }
@@ -105,9 +76,10 @@ final class AppServices implements AutoCloseable {
                     closeProgress();
                     if (owner == null || !owner.isDisplayable()) return;
                     JDialog ready = dialog("Update downloaded");
-                    JPanel content = content("Verified update ready", "Quit Digital Marathon, extract the downloaded ZIP, "
-                            + "then open the new Digital Marathon.app or Windows launcher. Your saved history and settings "
-                            + "stay in your user profile. Keep the complete new folder together.");
+                    JPanel content = content("Verified update ready", "Keep using Digital Marathon while you extract this ZIP "
+                            + "into a new folder. When you are ready to use the new version, quit the current app and open "
+                            + "the new Digital Marathon.app or Windows launcher. A restart is needed to load the new app. "
+                            + "Your saved history and settings stay in your user profile. Keep the complete new folder together.");
                     JTextArea file = paragraph(zip.getFileName().toString());
                     file.setForeground(muted()); content.add(file); content.add(Box.createVerticalStrut(15));
                     JButton folder = button("Show downloaded update", true);
@@ -115,7 +87,7 @@ final class AppServices implements AutoCloseable {
                         try { Desktop.getDesktop().open(zip.getParent().toFile()); }
                         catch (Exception error) { ThemeDialog.message(ready, owner.isDarkAppearance(), "Downloaded update", zip.getParent().toString()); }
                     });
-                    JButton done = button("Done", false); done.addActionListener(e -> ready.dispose());
+                    JButton done = button("Keep using app", false); done.addActionListener(e -> ready.dispose());
                     content.add(row(folder, done)); show(ready, content, 500);
                 });
             }
@@ -127,6 +99,9 @@ final class AppServices implements AutoCloseable {
                 });
             }
         });
+        // The removed settings page no longer exposes a scheduled-check switch.
+        // Restore notices for installations that had turned it off in 2.1.27.
+        if (!updates.autoCheckEnabled()) updates.setAutoCheckEnabled(true);
     }
     private void showRelease(UpdateManager.Release release) {
         if (releaseShowing) return;

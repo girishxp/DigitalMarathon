@@ -1,3 +1,15 @@
+# Digital Marathon 2.1.28
+
+## Automatic basic usage analytics and simpler Help
+
+- Starts basic usage analytics automatically at launch, including existing installations. Removes the first-run choice, analytics toggle and Updates & Privacy section. Manual Check for updates is in Help > About. Restores automatic update checks if an older preference disabled them; no update-check switch is shown.
+- Keeps the shared PulseStudio PostHog project, separate Digital Marathon event names and app filters. PulseStudio's dashboard and project settings remain unchanged. Activity/input totals, typed text, certificate names, paths, ranges, history and exports stay local.
+- Keeps update downloads and verification in the background while tracking and the current session continue. The verified-package notice makes clear that users can install later and restart only to activate the new version; users may extract into a new folder while the app continues and restart when ready to run the new launcher.
+- Documents the Mac Publish Digital Marathon.command and Windows Publish Digital Marathon - Windows.bat owner tools. Either publishes the same combined Latest release; a .command file does not run on Windows, and the PulseStudio publisher belongs to PulseStudio.
+- Updates current Help, README, Quick Start, publishing/analytics notes, platform notes, license notice and product guide to 2.1.28. Preserves the approved artwork, transparency controls, Mini View body, certificate, tracking and numerical-history behavior.
+
+---
+
 # Digital Marathon 2.1.27
 
 ## GitHub updates and optional anonymous usage

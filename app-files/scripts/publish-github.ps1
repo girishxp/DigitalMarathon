@@ -1,7 +1,7 @@
 # Owner-operated publisher. Uses installed Git/GitHub CLI; no credentials embedded.
 # PowerShell 5.1+ and .NET are included on supported Windows computers.
 $ErrorActionPreference = 'Stop'
-$Version = '2.1.27'
+$Version = '2.1.28'
 $GitHubRepo = 'girishxp/DigitalMarathon'
 # Explicit host keeps an unrelated enterprise login or GH_HOST out of this publisher.
 $GitHubRepoTarget = "github.com/$GitHubRepo"

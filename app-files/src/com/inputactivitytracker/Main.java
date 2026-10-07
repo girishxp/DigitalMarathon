@@ -55,7 +55,7 @@ public final class Main {
             try { appServices = new AppServices(dataDirectory); }
             catch (RuntimeException serviceError) {
                 // Optional online services must never prevent local tracking.
-                System.err.println("Optional update/analytics services are unavailable.");
+                System.err.println("Online update/analytics services are unavailable.");
             }
 
             Runtime.getRuntime().addShutdownHook(new Thread(Main::shutdown, "input-activity-shutdown"));
