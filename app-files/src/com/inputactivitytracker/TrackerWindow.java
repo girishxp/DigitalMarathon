@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -105,6 +106,9 @@ final class TrackerWindow extends JFrame {
     private final AtomicBoolean liveRefreshQueued = new AtomicBoolean();
     private final AtomicBoolean dataRefreshQueued = new AtomicBoolean();
     private ScheduledExecutorService refreshExecutor;
+    private final AtomicInteger busyDataOperations = new AtomicInteger();
+    private boolean updateClosePreparing;
+    private boolean updateClosePrepared;
 
     private JPanel fullPanel;
     private JPanel miniPanel;
@@ -112,6 +116,11 @@ final class TrackerWindow extends JFrame {
     private Point miniLocation;
     private boolean miniMode;
     private boolean viewTransitionInProgress;
+    private boolean updateReviewTransitionInProgress;
+    private Timer updateReviewResizeTimer;
+    private MiniReviewState updateReviewMiniState;
+    private record MiniReviewState(Rectangle bounds, Rectangle normalBounds, int transparency, boolean pinPreference,
+                                   boolean alwaysOnTop) {}
     private Timer miniLocationSaveTimer;
     private Timer fullBoundsSaveTimer;
     private boolean darkTheme;
@@ -151,6 +160,8 @@ final class TrackerWindow extends JFrame {
     private JButton startStopButton;
     private JToggleButton alwaysOnTopButton;
     private JButton miniFullViewButton;
+    private MiniUpdateNotice miniUpdateNotice;
+    private boolean miniUpdateBadge;
     private JButton miniThemeButton;
     private JLabel miniCapturePrivacyIndicator;
     private JLabel miniRangeLabel;
@@ -678,11 +689,23 @@ final class TrackerWindow extends JFrame {
         miniFullViewButton.setIcon(new ExpandCornersIcon(12));
         miniFullViewButton.setToolTipText("Open Full View");
         miniFullViewButton.getAccessibleContext().setAccessibleName("Open Full View");
-        miniFullViewButton.addActionListener(event -> exitMiniMode());
+        miniFullViewButton.setFocusable(true);
+        miniFullViewButton.putClientProperty("miniUpdateReviewControl", Boolean.TRUE);
+        miniFullViewButton.addActionListener(event -> {
+            if (miniUpdateBadge && services != null) services.reviewUpdate();
+            else exitMiniMode();
+        });
         topRow.add(miniFullViewButton);
         root.add(topRow);
         // Preserve the exact counter/range positions below the header.
-        root.add(Box.createVerticalStrut(7));
+        // The notice occupies the existing seven-pixel toolbar gap. Its empty
+        // state still reserves exactly that space, keeping every Mini control,
+        // counter and footer at the original position and the window at 262×88.
+        miniUpdateNotice = new MiniUpdateNotice();
+        miniUpdateNotice.addActionListener(event -> {
+            if (services != null) services.reviewUpdate();
+        });
+        root.add(miniUpdateNotice);
 
         JPanel counters = new JPanel();
         counters.setOpaque(false);
@@ -860,7 +883,13 @@ final class TrackerWindow extends JFrame {
     }
 
     private void enterMiniMode() {
-        if (miniMode || viewTransitionInProgress) return;
+        if (miniMode || viewTransitionInProgress || updateReviewTransitionInProgress) return;
+        if (services != null) services.beforeEnterMiniView();
+        if (miniMode || viewTransitionInProgress || updateReviewTransitionInProgress) return;
+        if (updateReviewMiniState != null) {
+            restoreMiniAfterUpdateReview(false);
+            return;
+        }
         viewTransitionInProgress = true;
         fullBounds = getBounds();
         persistFullBounds(fullBounds);
@@ -898,7 +927,7 @@ final class TrackerWindow extends JFrame {
     }
 
     private void exitMiniMode() {
-        if (!miniMode || viewTransitionInProgress) return;
+        if (!miniMode || viewTransitionInProgress || updateReviewTransitionInProgress) return;
         viewTransitionInProgress = true;
         rememberMiniLocation();
         miniMode = false;
@@ -923,6 +952,133 @@ final class TrackerWindow extends JFrame {
         // window in a temporarily non-interactive state.
         preferences.putBoolean("lastViewMini", false);
         viewTransitionInProgress = false;
+    }
+
+    boolean isMiniView() { return miniMode; }
+
+    boolean isUpdateReviewFromMini() { return updateReviewMiniState != null; }
+
+    /** Shared updater state only changes the compact notice and its button badge. */
+    void updateMiniNotice(String text, boolean badge) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> updateMiniNotice(text, badge));
+            return;
+        }
+        miniUpdateBadge = badge;
+        if (miniUpdateNotice != null) {
+            String notice = text == null ? "" : text.trim();
+            miniUpdateNotice.setText(notice);
+            miniUpdateNotice.setEnabled(!notice.isEmpty());
+            miniUpdateNotice.setFocusable(!notice.isEmpty());
+            miniUpdateNotice.setToolTipText(null);
+            miniUpdateNotice.getAccessibleContext().setAccessibleName(
+                    notice.isEmpty() ? "No update notice" : notice);
+            miniUpdateNotice.getAccessibleContext().setAccessibleDescription(
+                    "Opens update review in Full View; current work continues");
+            miniUpdateNotice.repaint();
+        }
+        updateMiniFullViewButton();
+    }
+
+    /** Expand before any update panel is created, then wait for stable full layout. */
+    void reviewUpdateInFullView(Runnable onReady, Runnable onFailure) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> reviewUpdateInFullView(onReady, onFailure));
+            return;
+        }
+        if (updateReviewTransitionInProgress || viewTransitionInProgress) return;
+        if (!miniMode) {
+            SwingUtilities.invokeLater(() -> {
+                if (!miniMode && !viewTransitionInProgress) onReady.run();
+                else onFailure.run();
+            });
+            return;
+        }
+        updateReviewMiniState = new MiniReviewState(new Rectangle(getBounds()),
+                fullBounds == null ? null : new Rectangle(fullBounds), transparencyPercent,
+                alwaysOnTopButton.isSelected(), isAlwaysOnTop());
+        try {
+            exitMiniMode();
+            if (miniMode || getContentPane() != fullPanel) {
+                failUpdateReviewExpansion(onFailure);
+                return;
+            }
+            updateReviewTransitionInProgress = true;
+            viewTransitionInProgress = true;
+            final long started = System.nanoTime();
+            final Rectangle[] previous = {new Rectangle(getBounds())};
+            final int[] stableSamples = {0};
+            updateReviewResizeTimer = new Timer(60, event -> {
+                Rectangle current = getBounds();
+                boolean fullLayout = !miniMode && getContentPane() == fullPanel
+                        && getWidth() >= 840 && getHeight() >= 680
+                        && fullPanel.getWidth() > 0 && fullPanel.getHeight() > 0;
+                stableSamples[0] = fullLayout && current.equals(previous[0])
+                        ? stableSamples[0] + 1 : 0;
+                previous[0] = new Rectangle(current);
+                long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+                // A few queued paints/resizes must pass before exposing a dialog.
+                // This prevents attaching a normal-size panel to the old Mini peer.
+                if (elapsedMillis >= 240 && stableSamples[0] >= 3) {
+                    stopUpdateReviewResizeWait();
+                    try { onReady.run(); }
+                    catch (RuntimeException error) { failUpdateReviewExpansion(onFailure); }
+                } else if (elapsedMillis >= 2400 || !isDisplayable()) {
+                    failUpdateReviewExpansion(onFailure);
+                }
+            });
+            updateReviewResizeTimer.start();
+        } catch (RuntimeException error) {
+            failUpdateReviewExpansion(onFailure);
+        }
+    }
+
+    private void stopUpdateReviewResizeWait() {
+        if (updateReviewResizeTimer != null) updateReviewResizeTimer.stop();
+        updateReviewResizeTimer = null;
+        updateReviewTransitionInProgress = false;
+        viewTransitionInProgress = false;
+    }
+
+    private void failUpdateReviewExpansion(Runnable onFailure) {
+        stopUpdateReviewResizeWait();
+        restoreMiniAfterUpdateReview(true);
+        onFailure.run();
+    }
+
+    /** The caller closes its update panel before asking the owner to shrink. */
+    void returnToMiniAfterUpdateReview() {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(this::returnToMiniAfterUpdateReview);
+            return;
+        }
+        stopUpdateReviewResizeWait();
+        restoreMiniAfterUpdateReview(false);
+    }
+
+    private void restoreMiniAfterUpdateReview(boolean expansionFailed) {
+        MiniReviewState saved = updateReviewMiniState;
+        if (saved == null) return;
+        updateReviewMiniState = null;
+        miniLocation = new Point(saved.bounds().getLocation());
+        alwaysOnTopButton.setSelected(saved.pinPreference());
+        preferences.putBoolean("alwaysOnTop", saved.pinPreference());
+        enterMiniMode();
+        if (miniMode) {
+            setSize(saved.bounds().getSize());
+            Point location = keepOnScreen(saved.bounds().getLocation(), saved.bounds().getSize());
+            setLocation(location);
+            miniLocation = new Point(location);
+            persistMiniLocation(location);
+            setAlwaysOnTop(saved.alwaysOnTop());
+            changeTransparency(saved.transparency(), false);
+            preferences.putInt("transparencyPercent", transparencyPercent);
+            preferences.putBoolean("lastViewMini", true);
+        }
+        if (expansionFailed && saved.normalBounds() != null) {
+            fullBounds = new Rectangle(saved.normalBounds());
+            persistFullBounds(fullBounds);
+        }
     }
 
     private Rectangle loadSavedFullBounds() {
@@ -1055,6 +1211,7 @@ final class TrackerWindow extends JFrame {
         usage("appearance_changed", Map.of("appearance", darkTheme ? "dark" : "light"));
         preferences.putBoolean("darkTheme", darkTheme);
         applyTheme();
+        if (services != null) services.appearanceChanged();
     }
 
     private JPanel buildTransparencyControl(boolean compact) {
@@ -1298,6 +1455,8 @@ final class TrackerWindow extends JFrame {
             miniActiveLabel.setIcon(new MiniActiveClockIcon(palette.success(), 12));
         }
         if (miniActiveValueLabel != null) miniActiveValueLabel.setForeground(palette.success());
+        if (miniUpdateNotice != null) miniUpdateNotice.setForeground(
+                darkTheme ? new Color(118, 170, 229) : new Color(53, 110, 183));
         if (miniFooterSeparator != null) {
             miniFooterSeparator.setLineColor(darkTheme
                     ? mixColor(palette.border(), palette.text(), 0.28f)
@@ -1391,7 +1550,12 @@ final class TrackerWindow extends JFrame {
                         button.getParent() instanceof JSpinner;
                 Color viewBackground = mixColor(palette.selection(), palette.chartBar(), darkTheme ? 0.34f : 0.24f);
                 Color outline = viewMode ? palette.chartBar() : palette.border();
-                if (miniToolbar) {
+                if (button instanceof MiniUpdateNotice) {
+                    button.setUI(new BasicButtonUI());
+                    button.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 7));
+                    button.setForeground(palette.chartBar());
+                    button.setBackground(palette.page());
+                } else if (miniToolbar) {
                     button.setUI(new AppleToolbarButtonUI(palette, darkTheme));
                     button.setForeground(palette.text());
                     button.setBackground(palette.control());
@@ -1542,11 +1706,62 @@ final class TrackerWindow extends JFrame {
         } finally {
             updatingTransparencyControls = false;
         }
-        if (miniFullViewButton != null) {
-            miniFullViewButton.setIcon(new ExpandCornersIcon(12));
-            miniFullViewButton.setForeground(darkTheme ? new Color(118, 170, 229) : new Color(53, 110, 183));
-        }
+        updateMiniFullViewButton();
         updateMiniPinButton();
+    }
+
+    private void updateMiniFullViewButton() {
+        if (miniFullViewButton == null) return;
+        miniFullViewButton.setIcon(new ExpandCornersIcon(12, miniUpdateBadge, palette().chartBar()));
+        miniFullViewButton.setForeground(darkTheme ? new Color(118, 170, 229) : new Color(53, 110, 183));
+        String action = miniUpdateBadge ? "Open Full View to review update" : "Open Full View";
+        miniFullViewButton.setToolTipText(action);
+        miniFullViewButton.getAccessibleContext().setAccessibleName(action);
+    }
+
+    /** A keyboard-accessible link painted in the existing compact toolbar gap. */
+    private static final class MiniUpdateNotice extends JButton {
+        MiniUpdateNotice() {
+            super("");
+            setUI(new BasicButtonUI());
+            putClientProperty(WindowDragSupport.NO_WINDOW_DRAG, Boolean.TRUE);
+            setOpaque(false);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setMargin(new Insets(0, 0, 0, 0));
+            // Use a plain Font rather than an Aqua FontUIResource: a delegate
+            // change must not silently replace the seven-pixel notice font.
+            setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 7));
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+            Dimension size = new Dimension(250, 7);
+            setPreferredSize(size);
+            setMinimumSize(size);
+            setMaximumSize(size);
+            setEnabled(false);
+            setFocusable(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            addFocusListener(new FocusAdapter() {
+                @Override public void focusGained(FocusEvent event) { repaint(); }
+                @Override public void focusLost(FocusEvent event) { repaint(); }
+            });
+        }
+
+        @Override protected void paintComponent(Graphics graphics) {
+            String text = getText();
+            if (text == null || text.isEmpty()) return;
+            Graphics2D g = (Graphics2D) graphics.create();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g.setFont(getFont());
+                g.setColor(getForeground());
+                int width = g.getFontMetrics().stringWidth(text);
+                float x = Math.max(1f, (getWidth() - width) / 2f);
+                g.drawString(text, x, 5.7f);
+                if (hasFocus()) g.drawLine(Math.round(x), 6, Math.round(x) + width, 6);
+            } finally { g.dispose(); }
+        }
     }
 
     private void updateMiniPinButton() {
@@ -1732,6 +1947,10 @@ final class TrackerWindow extends JFrame {
                 g.fillRoundRect(0, 0, component.getWidth() - 1, component.getHeight() - 1, 10, 10);
                 g.setColor(new Color(palette.border().getRed(), palette.border().getGreen(), palette.border().getBlue(), 72));
                 g.drawRoundRect(0, 0, component.getWidth() - 1, component.getHeight() - 1, 10, 10);
+                if (button.hasFocus() && Boolean.TRUE.equals(button.getClientProperty("miniUpdateReviewControl"))) {
+                    g.setColor(palette.muted());
+                    g.drawLine(6, component.getHeight() - 4, component.getWidth() - 7, component.getHeight() - 4);
+                }
             } finally {
                 g.dispose();
             }
@@ -1904,7 +2123,14 @@ final class TrackerWindow extends JFrame {
     /** Four-corner expand glyph matching the supplied Mini View reference. */
     private static final class ExpandCornersIcon implements Icon {
         private final int size;
-        private ExpandCornersIcon(int size) { this.size = size; }
+        private final boolean updateBadge;
+        private final Color badgeColor;
+        private ExpandCornersIcon(int size) { this(size, false, Color.BLUE); }
+        private ExpandCornersIcon(int size, boolean updateBadge, Color badgeColor) {
+            this.size = size;
+            this.updateBadge = updateBadge;
+            this.badgeColor = badgeColor;
+        }
         @Override public int getIconWidth() { return size; }
         @Override public int getIconHeight() { return size; }
         @Override public void paintIcon(Component component, Graphics graphics, int x, int y) {
@@ -1920,6 +2146,10 @@ final class TrackerWindow extends JFrame {
                 g.drawLine(x+r-l, y+m, x+r, y+m); g.drawLine(x+r, y+m, x+r, y+m+l);
                 g.drawLine(x+m, y+b-l, x+m, y+b); g.drawLine(x+m, y+b, x+m+l, y+b);
                 g.drawLine(x+r-l, y+b, x+r, y+b); g.drawLine(x+r, y+b-l, x+r, y+b);
+                if (updateBadge) {
+                    g.setColor(badgeColor);
+                    g.fillOval(x + size - 4, y, 4, 4);
+                }
             } finally { g.dispose(); }
         }
     }
@@ -3804,9 +4034,12 @@ final class TrackerWindow extends JFrame {
                 ? new TimeWindow(snapshot.sessionStart(), Instant.now())
                 : range.resolve(zone, ((java.util.Date) customStartSpinner.getValue()).toInstant(), ((java.util.Date) customEndSpinner.getValue()).toInstant());
         Path file = chooser.getSelectedFile().toPath();
+        UnitConverter.Unit unit = selectedUnit();
+        double ppi = selectedPpi();
+        busyDataOperations.incrementAndGet();
         queryExecutor.submit(() -> {
             try {
-                store.export(file, window.start(), window.end(), zone, selectedUnit(), selectedPpi());
+                store.export(file, window.start(), window.end(), zone, unit, ppi);
                 usage("csv_exported");
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                         "CSV exported to:\n" + file.toAbsolutePath(), "Export complete", JOptionPane.INFORMATION_MESSAGE));
@@ -3814,6 +4047,8 @@ final class TrackerWindow extends JFrame {
                 usage("csv_export_failed", Map.of("error_code", "save_failed"));
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                         "Could not export CSV:\n" + error.getMessage(), "Export failed", JOptionPane.ERROR_MESSAGE));
+            } finally {
+                busyDataOperations.decrementAndGet();
             }
         });
     }
@@ -3823,6 +4058,7 @@ final class TrackerWindow extends JFrame {
                 "Delete all saved activity history? This cannot be undone.",
                 "Clear activity history", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (result != JOptionPane.YES_OPTION) return;
+        busyDataOperations.incrementAndGet();
         queryExecutor.submit(() -> {
             try {
                 store.clear();
@@ -3831,6 +4067,8 @@ final class TrackerWindow extends JFrame {
             } catch (IOException error) {
                 SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(this,
                         "Could not clear history:\n" + error.getMessage(), "Clear failed", JOptionPane.ERROR_MESSAGE));
+            } finally {
+                busyDataOperations.decrementAndGet();
             }
         });
     }
@@ -3860,6 +4098,7 @@ final class TrackerWindow extends JFrame {
     }
 
     private void shutdownAndExit() {
+        stopUpdateReviewResizeWait();
         rememberCurrentWindowState();
         flushPreferences();
         setVisible(false);
@@ -3868,6 +4107,82 @@ final class TrackerWindow extends JFrame {
         tracker.close();
         dispose();
         System.exit(0);
+    }
+
+    /** Preparatory persistence never pauses tracking or creates a restart handoff. */
+    void prepareUpdateClose(Runnable ready, java.util.function.Consumer<String> failure) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> prepareUpdateClose(ready, failure));
+            return;
+        }
+        if (updateClosePreparing) return;
+        String waitReason = updateCloseWaitReason();
+        if (waitReason != null) {
+            failure.accept(waitReason);
+            return;
+        }
+        updateClosePreparing = true;
+        updateClosePrepared = false;
+        rememberCurrentWindowState();
+        queryExecutor.submit(() -> {
+            try {
+                preferences.flush();
+                tracker.flushUpdateHistory();
+                SwingUtilities.invokeLater(() -> {
+                    updateClosePreparing = false;
+                    updateClosePrepared = true;
+                    ready.run();
+                });
+            } catch (Exception error) {
+                SwingUtilities.invokeLater(() -> {
+                    updateClosePreparing = false;
+                    failure.accept("Your session could not be saved safely. Tracking continues. "
+                            + "Try again after resolving the storage issue.");
+                });
+            }
+        });
+    }
+
+    /** Only the explicit, confirmed update action calls this final close step. */
+    void closeForPreparedUpdate(java.util.function.Consumer<String> failure) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> closeForPreparedUpdate(failure));
+            return;
+        }
+        if (!updateClosePrepared) {
+            failure.accept("Save the current session before closing for this update.");
+            return;
+        }
+        String waitReason = updateCloseWaitReason();
+        if (waitReason != null) {
+            updateClosePrepared = false;
+            failure.accept(waitReason);
+            return;
+        }
+        try {
+            rememberCurrentWindowState();
+            preferences.flush();
+            // Freeze and write the final snapshot immediately before exit so
+            // any counts accrued during preparation are included on reopening.
+            tracker.finishUpdateSession(AppPaths.dataDirectory());
+            shutdownAndExit();
+        } catch (Exception error) {
+            updateClosePrepared = false;
+            failure.accept("Your session could not be saved safely. Tracking continues. "
+                    + "Try again after resolving the storage issue.");
+        }
+    }
+
+    private String updateCloseWaitReason() {
+        if (viewTransitionInProgress || updateReviewTransitionInProgress)
+            return "Wait for the view to finish resizing, then try again. Tracking continues.";
+        if (busyDataOperations.get() > 0)
+            return "Wait for the CSV export or history operation to finish, then try again. Tracking continues.";
+        for (Window child : getOwnedWindows()) {
+            if (child instanceof Dialog dialog && dialog.isModal() && dialog.isShowing())
+                return "Finish or close the current dialog before closing for an update. Tracking continues.";
+        }
+        return null;
     }
 
     private RangeOption selectedRange() {

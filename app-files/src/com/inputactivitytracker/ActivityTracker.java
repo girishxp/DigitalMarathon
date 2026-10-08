@@ -3,6 +3,8 @@ package com.inputactivitytracker;
 import com.inputactivitytracker.ActivityModels.Snapshot;
 import com.inputactivitytracker.ActivityModels.Totals;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.PointerInfo;
@@ -277,6 +279,57 @@ final class ActivityTracker implements AutoCloseable {
         pendingClicks = 0L;
         pendingActive = 0.0;
         return delta;
+    }
+
+    /** Preparatory flush keeps tracking active and does not create a restart handoff. */
+    void flushUpdateHistory() throws IOException {
+        synchronized (lock) {
+            rolloverIfNeededLocked(Instant.now());
+            accrueActiveLocked(System.nanoTime());
+            store.add(Instant.now(), drainPendingLocked());
+            store.flush();
+        }
+    }
+
+    /** Freeze only at the user's confirmed close, with rollback if durable saving fails. */
+    void finishUpdateSession(Path directory) throws IOException {
+        synchronized (lock) {
+            boolean wasRunning = running;
+            try {
+                rolloverIfNeededLocked(Instant.now());
+                accrueActiveLocked(System.nanoTime());
+                running = false;
+                store.add(Instant.now(), drainPendingLocked());
+                store.flush();
+                UpdateSession.save(directory, new Totals(sessionMouse, sessionKeys, sessionClicks, sessionActive),
+                        sessionStart, wasRunning, zone);
+                lastPointer = null;
+                pressedKeys.clear();
+            } catch (IOException | RuntimeException failure) {
+                running = wasRunning;
+                lastActiveNanos = System.nanoTime();
+                throw failure;
+            }
+        }
+    }
+
+    void restoreUpdateSession(Path directory) {
+        UpdateSession.Saved saved = UpdateSession.consume(directory, zone);
+        if (saved == null) return;
+        synchronized (lock) {
+            sessionMouse = saved.totals().mousePixels();
+            sessionKeys = saved.totals().keyPresses();
+            sessionClicks = saved.totals().mouseClicks();
+            sessionActive = saved.totals().activeSeconds();
+            sessionStart = saved.start();
+            sessionDate = LocalDate.now(zone);
+            running = saved.running();
+            pendingMouse = pendingActive = 0;
+            pendingKeys = pendingClicks = 0;
+            lastActiveNanos = System.nanoTime();
+            lastPointer = null;
+            pressedKeys.clear();
+        }
     }
 
     private void flushPendingSafely() {

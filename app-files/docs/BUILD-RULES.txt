@@ -47,3 +47,28 @@ ZIP. Generate the checksum asset temporarily when no external file is supplied.
 Keep source credentials, runtimes, binaries, activity data and QA files out of
 the derived repository snapshot. Verify both uploaded release assets before
 publishing Latest. App users still need only the complete combined ZIP.
+
+UPDATE PRESENTATION IN FULL AND MINI VIEW
+
+Keep Mini View's approved dimensions and controls unchanged. Use a compact
+notice and Full View badge to signal update attention; do not show update
+panels or dialogs while Mini View is active. Review must restore Full View and
+wait for that view to settle before showing one shared nonmodal panel with
+release notes, download progress and status. Back to Mini must close this panel
+first and restore Mini View's previous position, transparency, Always on Top
+setting and session. Guard repeated actions against duplicate panels/downloads.
+Retain release-origin, safe-path, product/version, archive CRC and SHA-256
+validation before accepting an update. Installation still requires the verified
+ZIP to be extracted and the new launcher opened after quitting the old app;
+do not hot-replace running Java or native input components.
+
+Preserve the final manual installation controls: Update Now, Remind Me Later,
+Skip This Version, Retry, Show Downloaded Update, Save & Close for Update,
+Back to Mini and Close Review. Close Review/Back to Mini must not cancel a
+running download. Keep long release notes scrollable and keyboard-accessible
+in both themes. Save & Close for Update must wait for exports, history saves,
+view transitions and other modal work, then save settings/history and a one-use
+session handoff before closing. Saving failure must keep the app open/running.
+Resume the session totals, start time and running/paused state only on a next
+startup on the same local calendar day; across midnight use normal rollover.
+Keep the handoff local. Do not claim automatic install/reopen or hot replacement.

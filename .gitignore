@@ -23,3 +23,6 @@ activity-buckets*
 activity.db
 analytics-settings.json
 update-preferences.json
+
+update-session.json
+.update-session-*

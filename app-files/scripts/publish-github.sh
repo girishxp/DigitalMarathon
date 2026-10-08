@@ -1,7 +1,7 @@
 #!/bin/bash
 # Owner-operated publisher. No credentials are embedded and dry-run never mutates GitHub.
 set -euo pipefail
-VERSION=2.1.29
+VERSION=2.1.30
 GITHUB_REPO=girishxp/DigitalMarathon
 # Explicit host keeps an unrelated enterprise login or GH_HOST out of this publisher.
 GITHUB_TARGET="github.com/$GITHUB_REPO"
@@ -70,7 +70,7 @@ private_zip_path() {
   local lower
   lower="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
   case "/$lower/" in
-    */.git/*|*/.gitmodules/*|*/.env*|*/.digital_marathon/*|*/qa/*|*/test-user/*|*/temporary-history/*|*/logs/*|*/history/*|*/userdata/*|*/recordings/*|*/credentials*|*/secrets*|*/activity-buckets.dat/*|*/activity.db/*|*/activity-history*|*/analytics-settings.json/*|*/update-settings.json/*|*/update-preferences.json/*|*/preferences.json/*|*.log/|*.csv/|*.jpg/|*.jpeg/|*.pem/|*.key/|*.p12/|*.pfx/) return 0 ;;
+    */.git/*|*/.gitmodules/*|*/.env*|*/.digital_marathon/*|*/qa/*|*/test-user/*|*/temporary-history/*|*/logs/*|*/history/*|*/userdata/*|*/recordings/*|*/credentials*|*/secrets*|*/activity-buckets.dat/*|*/activity.db/*|*/activity-history*|*/analytics-settings.json/*|*/update-settings.json/*|*/update-preferences.json/*|*/update-session.json/*|*/.update-session-*|*/preferences.json/*|*.log/|*.csv/|*.jpg/|*.jpeg/|*.pem/|*.key/|*.p12/|*.pfx/) return 0 ;;
   esac
   return 1
 }

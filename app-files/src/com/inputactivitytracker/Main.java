@@ -52,6 +52,7 @@ public final class Main {
             Path dataDirectory = AppPaths.dataDirectory();
             HistoryStore store = new HistoryStore(dataDirectory);
             tracker = new ActivityTracker(store, ZoneId.systemDefault());
+            tracker.restoreUpdateSession(dataDirectory);
             try { appServices = new AppServices(dataDirectory); }
             catch (RuntimeException serviceError) {
                 // Optional online services must never prevent local tracking.

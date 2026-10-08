@@ -66,7 +66,7 @@ for path in (package/'app-files/runtime/windows-x64/bin/java.exe',package/'app-f
         if pe[:4]!=b'PE\0\0' or struct.unpack('<H',pe[4:6])[0]!=0x8664: raise SystemExit('Expected Windows x64 runtime.')
 for relative in ('Digital Marathon.app/Contents/MacOS/Digital Marathon','REPAIR_MAC_PERMISSIONS.command','Publish Digital Marathon.command','Start Screen Recorder - Linux.sh','app-files/scripts/package-local-mac.sh'):
     if not (package/relative).stat().st_mode&stat.S_IXUSR: raise SystemExit('Launcher is not executable: '+relative)
-private=re.compile(r'(^|/)(?:__MACOSX|\.DS_Store|\.git|\.env[^/]*|\.digital_marathon|qa|logs|history|userdata|recordings|credentials[^/]*|secrets[^/]*|activity-buckets\.dat|analytics-settings\.json|update-preferences\.json|preferences\.json|hs_err_pid[^/]*)(?:/|$)|\.(?:log|csv|jpg|jpeg|pem|key|p12|pfx|hprof|jfr)$',re.I)
+private=re.compile(r'(^|/)(?:__MACOSX|\.DS_Store|\.git|\.env[^/]*|\.digital_marathon|qa|logs|history|userdata|recordings|credentials[^/]*|secrets[^/]*|activity-buckets\.dat|analytics-settings\.json|update-preferences\.json|update-session\.json|\.update-session-[^/]*|preferences\.json|hs_err_pid[^/]*)(?:/|$)|\.(?:log|csv|jpg|jpeg|pem|key|p12|pfx|hprof|jfr)$',re.I)
 files={}
 for path in package.rglob('*'):
     name=path.relative_to(package).as_posix()

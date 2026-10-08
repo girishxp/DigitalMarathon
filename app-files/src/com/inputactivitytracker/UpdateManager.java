@@ -48,6 +48,11 @@ public final class UpdateManager implements AutoCloseable {
         void downloading(long bytes, long total);
         void downloaded(Path zip);
         void failed(String code, String userMessage);
+        /** Explicit stage for shared review state; older callers retain their previous callbacks. */
+        default void checkFailed(String code, String userMessage, boolean manual) {
+            if (manual) failed(code, userMessage);
+            else checked(null, false, userMessage);
+        }
     }
 
     static final URI API = URI.create("https://api.github.com/repos/girishxp/DigitalMarathon/releases/latest");
@@ -249,11 +254,12 @@ public final class UpdateManager implements AutoCloseable {
             event("update_available", Map.of("available_version", version, "manual", manual));
             checked(found, manual, "Digital Marathon v" + version + " is available.");
         } catch (Exception ex) {
-            latestRelease = null;
+            // A transient check failure cannot invalidate a previously checked release or ready ZIP.
             String code = failureCode(ex);
             event("update_error", Map.of("stage", "check", "error_code", code, "manual", manual));
-            if (manual) failed(code, "We could not check for a published update. Please check your connection and try again later.");
-            else checked(null, false, "Automatic update check could not finish. It will try again later.");
+            checkFailed(code, manual
+                    ? "We could not check for a published update. Please check your connection and try again later."
+                    : "Automatic update check could not finish. It will try again later.", manual);
         }
     }
 
@@ -514,6 +520,10 @@ public final class UpdateManager implements AutoCloseable {
     private void failed(String code, String message) {
         Listener callback = listener;
         if (!closed && callback != null) try { callback.failed(code, message); } catch (RuntimeException ignored) {}
+    }
+    private void checkFailed(String code, String message, boolean manual) {
+        Listener callback = listener;
+        if (!closed && callback != null) try { callback.checkFailed(code, message, manual); } catch (RuntimeException ignored) {}
     }
     private void event(String name, Map<String, Object> props) {
         if (!closed) try { eventSink.accept(name, props); } catch (RuntimeException ignored) {}

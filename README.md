@@ -1,4 +1,4 @@
-# Digital Marathon 2.1.29
+# Digital Marathon 2.1.30
 
 Digital Marathon is a privacy-first desktop activity utility. It tracks numerical mouse-distance, keyboard-press, mouse-click, and active-time totals without storing what you type.
 
@@ -6,13 +6,13 @@ The **Pearl & Aqua** brand icon uses modestly darker color and improved renderin
 
 Full View and Help keep their existing header icon sizes. Small icons are filtered at the display's actual pixel resolution for clearer detail on Retina and other displays.
 
-Version 2.1.29 keeps the complete Mac app, Windows launcher and Windows runtime inside one combined ZIP and its shared folder. Local development and testing do not require an Apple Developer account or notarization. Basic usage analytics remains automatic, with manual update checks in Help > About. Verified updates download in the background while the current session continues; restarting is required only to run the new version. The approved larger macOS Dock icon, in-app artwork, certificate layout and transparency bars remain the same.
+Version 2.1.30 improves update handling in Mini View: a compact notice and Full View badge lead to one shared review/progress panel after Full View opens. The complete Mac app, Windows launcher and Windows runtime remain inside one combined ZIP and shared folder. Local development and testing do not require an Apple Developer account or notarization. Basic usage analytics remains automatic, with manual update checks in Help > About. Verified updates download in the background while the current session continues; restarting is required only to run the new version. The approved larger macOS Dock icon, in-app artwork, certificate layout and transparency bars remain the same.
 
 ## Start here
 
-On GitHub, download **digital-marathon-cross-platform-v2.1.29-click-to-launch.zip** from the **Release assets** at [Digital Marathon Releases](https://github.com/girishxp/DigitalMarathon/releases/latest). GitHub's automatic **Source code (zip/tar.gz)** archives contain sanitized source and lack the runtimes/JAR needed for direct launch. The public release becomes available only after owner publication.
+On GitHub, download **digital-marathon-cross-platform-v2.1.30-click-to-launch.zip** from the **Release assets** at [Digital Marathon Releases](https://github.com/girishxp/DigitalMarathon/releases/latest). GitHub's automatic **Source code (zip/tar.gz)** archives contain sanitized source and lack the runtimes/JAR needed for direct launch. The public release becomes available only after owner publication.
 
-Use the single complete **digital-marathon-cross-platform-v2.1.29-click-to-launch.zip**. Extract it completely, open the **`digital-marathon`** folder, and double-click the launcher inside it for your computer:
+Use the single complete **digital-marathon-cross-platform-v2.1.30-click-to-launch.zip**. Extract it completely, open the **`digital-marathon`** folder, and double-click the launcher inside it for your computer:
 
 | Computer | File to open |
 |---|---|
@@ -45,13 +45,19 @@ digital-marathon/
 `-- app-files/                      Windows runtime, source, docs and support files
 ```
 
-The updated product guide is at **`app-files/docs/Digital-Marathon-Product-Guide.pdf`**. It covers version 2.1.29, the shared launch folder, controls, certificate, privacy and troubleshooting. Release changes are listed in **`CHANGELOG.md`**.
+The updated product guide is at **`app-files/docs/Digital-Marathon-Product-Guide.pdf`**. It covers version 2.1.30, the shared launch folder, controls, certificate, privacy and troubleshooting. Release changes are listed in **`CHANGELOG.md`**.
 
 ## Updates and basic usage analytics
 
-Open **Help > About** and choose **Check for updates** for a manual check. Automatic checks run at startup and every **15 minutes while the app is open**. There are no closed-app notifications. When a newer release is available, choose **Download Update**, **Remind Me Later** for 24 hours, or **Skip This Version**. A manual check can still show a skipped version.
+Open **Help > About** and choose **Check for updates** for a manual check. Automatic checks run at startup and every **15 minutes while the app is open**. There are no closed-app notifications. When a newer release is available, choose **Update Now**, **Remind Me Later** for 24 hours, or **Skip This Version**. A manual check can still show a skipped version.
 
-The download runs in the background while tracking and the current session continue. The release ZIP is accepted only when its **SHA-256 checksum** matches. After download, you may continue using the current version and install later. Extract the verified package into a new folder while the current app continues. When ready, quit the current app and open its new Mac `.app` or Windows `.bat`. A restart is needed to activate the new version; the running Java application and native input components are not replaced in place. Your saved numerical history stays outside the launch folder. Offline use and local tracking still work.
+In Mini View, update notices keep the same window size and controls. The compact notice and Full View badge indicate when attention is needed; update panels and dialogs are not shown over Mini View. Choose to review the update to restore Full View first, then open the single shared, nonmodal panel for release notes, progress and status. Repeated actions do not open duplicate panels or start duplicate downloads. **Back to Mini** closes the panel before restoring Mini View. Your previous position, transparency, Always on Top setting and tracking session are preserved.
+
+The download runs in the background while tracking continues. The ZIP is accepted only after the release-source, product/version, safe-path, archive CRC and **SHA-256** checks pass. Release notes scroll within the shared panel, which supports keyboard navigation in both themes. **Back to Mini** or **Close Review** closes the panel while the download continues. An error offers **Retry**.
+
+Once verified, **Show Downloaded Update** opens the downloaded package's folder. Extract the ZIP into a new folder while the current app continues. When ready, choose **Save & Close for Update**, then open the new Mac `.app` or Windows `.bat`. This action saves settings, numerical history and a one-use current-session record before closing. It waits for active exports, history saves, view transitions or other open dialogs to finish. If saving fails, the app stays open and tracking continues.
+
+On the next launch during the **same local calendar day**, the saved session resumes with its totals, start time and running/paused state. A restart across midnight follows the normal daily rollover; saved history remains local. You can keep using the existing version and install later. Restarting activates new Java/native components; the app does not replace itself while running, automatically install the ZIP, or reopen the new launcher for you. Offline tracking still works.
 
 Basic usage analytics starts automatically when the app launches, including installations with an older saved opt-out preference. There is no first-run choice or analytics toggle in Help. This release uses the **existing PulseStudio PostHog project**. Its events start with `digital_marathon_`, and its insights and [Digital Marathon dashboard](https://us.posthog.com/project/580438/dashboard/2181978) save `app_id = digital-marathon` filters. The existing PulseStudio dashboard stays unchanged. No new project, billing plan or card setup is required.
 
@@ -162,6 +168,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File app-files/scripts/compile-so
 
 These scripts fetch only a missing pinned **JNativeHook 2.2.2** dependency from official Maven Central, compile source/resources/PDF and write `app-files/app/digital-marathon.jar`. They do not launch the application or modify the Mac bundle. Existing platform build scripts can then consume this JAR; a Mac native build also needs Apple Command Line Tools. Source compilation does not add the runtimes missing from GitHub source archives.
 
-Application source, native source, icons, the updated product guide, platform help, and provided license texts are included under `app-files/`. Help & About documents the version 2.1.29 controls and launch guidance. The bundled Java 21 runtimes allow direct Mac and Windows launch. Windows uses Java 21 because its capture-privacy component uses that version's preview API; use the supplied launcher and runtime together. Runtime license notices are included with the runtimes.
+Application source, native source, icons, the updated product guide, platform help, and provided license texts are included under `app-files/`. Help & About documents the version 2.1.30 controls and launch guidance. The bundled Java 21 runtimes allow direct Mac and Windows launch. Windows uses Java 21 because its capture-privacy component uses that version's preview API; use the supplied launcher and runtime together. Runtime license notices are included with the runtimes.
 
 Every complete distribution is a single ZIP that extracts into `digital-marathon/`. It must contain `Digital Marathon.app`, the Windows `.bat`, the Windows runtime and application files together. Mac builds are checked for a valid local ad-hoc signature and launch from an extracted copy before delivery; no separate Mac app package is needed.

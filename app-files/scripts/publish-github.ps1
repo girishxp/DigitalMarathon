@@ -1,7 +1,7 @@
 # Owner-operated publisher. Uses installed Git/GitHub CLI; no credentials embedded.
 # PowerShell 5.1+ and .NET are included on supported Windows computers.
 $ErrorActionPreference = 'Stop'
-$Version = '2.1.29'
+$Version = '2.1.30'
 $GitHubRepo = 'girishxp/DigitalMarathon'
 # Explicit host keeps an unrelated enterprise login or GH_HOST out of this publisher.
 $GitHubRepoTarget = "github.com/$GitHubRepo"
@@ -38,7 +38,7 @@ function Allowed([string]$Name) {
     return $Name -match '^app-files/resources/(app-icon(-mac)?\.png|header-icon\.png|app-icon\.(ico|icns)|update-feed\.json|analytics-config\.json)$'
 }
 function Private-ZipPath([string]$Name) {
-    return $Name -match '(^|/)(\.git|\.gitmodules|\.env[^/]*|\.digital_marathon|qa|test-user|temporary-history|logs|history|userdata|recordings|credentials[^/]*|secrets[^/]*|activity-buckets\.dat|activity\.db|activity-history[^/]*|analytics-settings\.json|update-settings\.json|update-preferences\.json|preferences\.json)(/|$)|\.(log|csv|jpg|jpeg|pem|key|p12|pfx)$'
+    return $Name -match '(^|/)(\.git|\.gitmodules|\.env[^/]*|\.digital_marathon|qa|test-user|temporary-history|logs|history|userdata|recordings|credentials[^/]*|secrets[^/]*|activity-buckets\.dat|activity\.db|activity-history[^/]*|analytics-settings\.json|update-settings\.json|update-preferences\.json|update-session\.json|\.update-session-[^/]*|preferences\.json)(/|$)|\.(log|csv|jpg|jpeg|pem|key|p12|pfx)$'
 }
 function Entry-Bytes([IO.Compression.ZipArchive]$Archive, [string]$Name) {
     $entry = $Archive.GetEntry($Name)

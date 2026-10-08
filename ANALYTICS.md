@@ -1,6 +1,6 @@
 # Updates and basic usage analytics
 
-Digital Marathon 2.1.29 keeps activity history on your computer. GitHub delivers releases; basic usage analytics starts automatically at launch to help the owner understand installations, versions and feature use. There is no first-run choice or user-facing analytics toggle. Manual update checks are in **Help > About > Check for updates**.
+Digital Marathon 2.1.30 keeps activity history on your computer. GitHub delivers releases; basic usage analytics starts automatically at launch to help the owner understand installations, versions and feature use. There is no first-run choice or user-facing analytics toggle. Manual update checks are in **Help > About > Check for updates**.
 
 ## Activity data stays local
 
@@ -22,12 +22,18 @@ Like any network connection, the source IP exists in transit and can reach the c
 
 ## Update actions
 
-- **Automatic update checks**: checks at startup and every 15 minutes while the app is running. A manual **Check for updates** action is in **Help > About**. Version 2.1.29 restores automatic checks for older saved disabled preferences; no update-check switch is shown.
-- **Download Update**: downloads a newer release in the background only after your action. Tracking and the current session continue. The package is accepted only when its SHA-256 matches the release checksum.
+Mini View uses a compact notice and Full View badge, with no update dialog over the small window. Reviewing an update restores Full View before opening one shared nonmodal panel for release notes, progress and status. **Back to Mini** closes the panel before restoring the previous view, position, transparency, Always on Top setting and session. Repeated actions are guarded against duplicate panels/downloads.
+
+- **Automatic update checks**: checks at startup and every 15 minutes while the app is running. A manual **Check for updates** action is in **Help > About**. Version 2.1.30 restores automatic checks for older saved disabled preferences; no update-check switch is shown.
+- **Update Now**: downloads a newer release in the background only after your action. Tracking and the current session continue. The package is accepted only when its SHA-256 matches the release checksum.
 - **Remind Me Later**: postpones the same release prompt for 24 hours.
 - **Skip This Version**: suppresses automatic prompts for that release. A manual check can still show it.
 
-After the download is verified, you may continue using the current version and install later. Extract the downloaded package into a new folder while the current app continues. When ready to run the new version, quit the current app and open the new Mac `.app` or Windows `.bat`. Loaded Java and native input components need a restart; they are not replaced in place. Existing numerical history stays outside the launch folder. There are no update notifications while the app is closed.
+The shared panel scrolls release notes and supports keyboard navigation in both themes. **Back to Mini** or **Close Review** closes it while a download continues; errors offer **Retry**. Release-source, product/version, safe-path, archive CRC and SHA-256 checks are preserved.
+
+After verification, **Show Downloaded Update** opens the download folder. Extract into a new folder while continuing the current session. When ready, **Save & Close for Update** saves settings, numerical history and a one-use current-session record before closing; it waits for active exports, history saves, view transitions and other open dialogs. If saving fails, the app stays open and tracking continues. The user opens the new Mac `.app` or Windows `.bat` manually; the app does not install or reopen it automatically.
+
+On the next launch during the same local calendar day, the saved session resumes its totals, start time and running/paused state. Across midnight, normal daily rollover applies. This record and existing numerical history stay local. Loaded Java/native components need restart rather than in-place replacement. There are no update notifications while the app is closed.
 
 ## Owner configuration
 

@@ -1,6 +1,6 @@
 # Publish Digital Marathon to GitHub
 
-These owner-operated launchers publish Digital Marathon **2.1.29** to the public repository **girishxp/DigitalMarathon**. The PulseStudio publisher belongs to a different application; use these Digital Marathon publishers for this repository. Nothing is published merely by running the app.
+These owner-operated launchers publish Digital Marathon **2.1.30** to the public repository **girishxp/DigitalMarathon**. The PulseStudio publisher belongs to a different application; use these Digital Marathon publishers for this repository. Nothing is published merely by running the app.
 
 - Mac: **Publish Digital Marathon.command**
 - Windows: **Publish Digital Marathon - Windows.bat**
@@ -16,7 +16,7 @@ Create a **public** `girishxp/DigitalMarathon` repository on GitHub. Prepare a c
 Keep the **original combined ZIP** beside the extracted `digital-marathon` folder, or select it with `--zip PATH`. The publisher can also look for the exact expected ZIP in Downloads. This is the one complete package: no separate source snapshot or checksum download is required.
 
 ```text
-digital-marathon-cross-platform-v2.1.29-click-to-launch.zip
+digital-marathon-cross-platform-v2.1.30-click-to-launch.zip
 digital-marathon/
 ```
 
@@ -26,7 +26,7 @@ If paths differ, use `--zip` and `--repo-dir` or set `DIGITAL_MARATHON_ZIP` and 
 
 ## One complete combined package
 
-The release asset must be **digital-marathon-cross-platform-v2.1.29-click-to-launch.zip**, with a single **digital-marathon/** root. Inside it, include **Digital Marathon.app**, **Start Digital Marathon - Windows.bat**, the complete **app-files/** application and Windows runtime, and the current documentation. The Mac app belongs inside this same combined folder and ZIP; do not replace it with a separate Mac download or a source-only archive.
+The release asset must be **digital-marathon-cross-platform-v2.1.30-click-to-launch.zip**, with a single **digital-marathon/** root. Inside it, include **Digital Marathon.app**, **Start Digital Marathon - Windows.bat**, the complete **app-files/** application and Windows runtime, and the current documentation. The Mac app belongs inside this same combined folder and ZIP; do not replace it with a separate Mac download or a source-only archive.
 
 Local development and testing require no Apple Developer account or notarization. Packaging must verify the Mac bundle's local ad-hoc signature and test launch from an extracted package. A browser-downloaded unnotarized copy can still be blocked by macOS; local launch checks do not guarantee prompt-free use on every Mac or download. Developer ID signing and notarization are an optional later step for public distribution, not a requirement for this local development build. None of these packaging checks require removing quarantine attributes or resetting macOS security settings.
 
@@ -36,7 +36,7 @@ Mac example:
 
 ```bash
 ./"Publish Digital Marathon.command" --dry-run \
-  --zip "/path with spaces/digital-marathon-cross-platform-v2.1.29-click-to-launch.zip" \
+  --zip "/path with spaces/digital-marathon-cross-platform-v2.1.30-click-to-launch.zip" \
   --repo-dir "$HOME/Developer/DigitalMarathon"
 ```
 
@@ -44,7 +44,7 @@ Windows example:
 
 ```powershell
 & '.\Publish Digital Marathon - Windows.bat' --dry-run `
-  --zip 'C:\Release Files\digital-marathon-cross-platform-v2.1.29-click-to-launch.zip' `
+  --zip 'C:\Release Files\digital-marathon-cross-platform-v2.1.30-click-to-launch.zip' `
   --repo-dir "$HOME\Developer\DigitalMarathon"
 ```
 
@@ -63,7 +63,7 @@ When the dry run passes, double-click the appropriate publisher (or rerun the sa
 
 The release contains the one combined Mac/Windows ZIP plus its checksum, which the publisher can generate. Users need only the combined ZIP to run the app; owners need no second source/checksum download to publish it. GitHub separately offers automatic source archives. The source repository excludes bundled runtimes, `.app`/JAR/executable/native program binaries, QA/build output, logs, activity history, certificate downloads and credentials. Icon resources and the product PDF are retained as source/documentation assets.
 
-Tell users to download **digital-marathon-cross-platform-v2.1.29-click-to-launch.zip** from the Release assets. GitHub's **Source code (zip/tar.gz)** archives contain the sanitized repository and lack the runtime/JAR needed for direct launch. Pushing a source commit alone does not make an app update available: publishing a newer **Release** as Latest does. Prompts appear only when the app is running.
+Tell users to download **digital-marathon-cross-platform-v2.1.30-click-to-launch.zip** from the Release assets. GitHub's **Source code (zip/tar.gz)** archives contain the sanitized repository and lack the runtime/JAR needed for direct launch. Pushing a source commit alone does not make an app update available: publishing a newer **Release** as Latest does. Prompts appear only when the app is running.
 
 ## If something fails
 
@@ -73,9 +73,15 @@ Inspect any partial draft and its target commit before deciding how to recover. 
 
 ## Updates and basic analytics
 
-Publishing a newer version as **Latest** using either Digital Marathon publisher makes it available to existing Digital Marathon **2.1.27 or later** installations that have automatic checks enabled. Apps check `girishxp/DigitalMarathon` at startup and every 15 minutes while running; a user can check manually from **Help > About > Check for updates**. Pushing source commits alone does not trigger update notifications. The app does not notify while it is closed. Version 2.1.29 restores automatic checks if an older preference had disabled them; no update-check switch is shown. Version 2.1.26 and older do not contain this updater. An unpublished/private repository yields no available public update.
+Publishing a newer version as **Latest** using either Digital Marathon publisher makes it available to existing Digital Marathon **2.1.27 or later** installations that have automatic checks enabled. Apps check `girishxp/DigitalMarathon` at startup and every 15 minutes while running; a user can check manually from **Help > About > Check for updates**. Pushing source commits alone does not trigger update notifications. The app does not notify while it is closed. Version 2.1.30 restores automatic checks if an older preference had disabled them; no update-check switch is shown. Version 2.1.26 and older do not contain this updater. An unpublished/private repository yields no available public update.
 
-Users choose **Download Update**, **Remind Me Later** for 24 hours or **Skip This Version**. Downloading and SHA-256 verification run in the background while the current session and tracking continue. Users may install later. They may extract the verified ZIP into a new folder while continuing the current session. To run the new version, they quit the current app and launch the new `.app` or `.bat`. A restart is required to activate new Java/native components; this package does not hot-swap or silently overwrite its running application. Activity history remains outside the launch folder.
+Version 2.1.30 presents update attention in Mini View through a compact notice and Full View badge, preserving its existing dimensions and controls. Review restores Full View before opening one shared nonmodal release-notes/progress panel. Back to Mini closes that panel before restoring the previous Mini position, transparency, Always on Top setting and session. Repeated actions do not open duplicate panels or downloads. Update dialogs do not appear while the app is in Mini View.
+
+Users choose **Update Now**, **Remind Me Later** for 24 hours or **Skip This Version**. Release notes scroll in the shared nonmodal panel, with keyboard navigation in both themes. Downloading and verification continue while tracking runs; **Back to Mini** or **Close Review** closes the panel without interrupting the download. An error offers **Retry**. Release-source, product/version, safe-path, archive CRC and SHA-256 validation remain required.
+
+After verification, **Show Downloaded Update** opens the download folder. Users extract the ZIP into a new folder while the current session continues. **Save & Close for Update** saves settings, numerical history and a one-use current-session record before closing. It defers closing while exports, history saves, view transitions or other dialogs are active. A saving failure keeps the app open and tracking active. The user then opens the new `.app` or `.bat`; installation and reopening remain manual.
+
+The next launch on the same local calendar day resumes session totals, start time and running/paused state from that one-use record. Across midnight, normal daily rollover applies. Activity history stays outside the launch folder. Users may install later; this release does not automatically install/reopen or hot-swap running Java/native components.
 
 GitHub asset-download counts provide distribution statistics. Basic usage analytics is automatically active at launch with this release's public ingestion configuration. There is no first-run choice or user-facing analytics toggle. It uses the **existing PulseStudio PostHog project**, without creating a new project, changing a billing plan or adding a card.
 

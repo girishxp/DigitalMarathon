@@ -1,3 +1,17 @@
+# Digital Marathon 2.1.30
+
+## Updates that respect Mini View
+
+- Keeps Mini View's footprint and controls unchanged. Update attention uses a compact notice and Full View badge, with no update dialog or panel over Mini View.
+- Restores Full View before opening one shared nonmodal panel for release notes, download progress and status. Guards repeated actions against duplicate panels and downloads.
+- Back to Mini closes the panel first, then restores Mini View's previous position, transparency, Always on Top setting and tracking session.
+- Preserves GitHub release-origin, product/version, safe-path, archive CRC and SHA-256 validation. Background downloads keep tracking active; activating a verified new build still requires restart.
+- Adds Save & Close for Update after verification: saves settings/history and a one-use current-session record, waiting for active work before closing. A saving failure leaves the app open/running. The next launch on the same local day resumes session totals, start time and running/paused state; across midnight normal rollover applies. Installation and launching the new package remain manual.
+- Provides Update Now, reminder/skip actions, Retry on errors and Show Downloaded Update when verified. Closing review or returning to Mini keeps downloads running; long release notes scroll with keyboard support in both themes.
+- Updates current Help, documentation and product guide to 2.1.30. Keeps the complete combined Mac/Windows ZIP, automatic basic analytics, approved Pearl & Aqua icon, Classic Award certificate and rounded transparency tabs unchanged.
+
+---
+
 # Digital Marathon 2.1.29
 
 ## One complete Mac and Windows package

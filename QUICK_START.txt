@@ -1,10 +1,10 @@
-DIGITAL MARATHON 2.1.29 - QUICK START
+DIGITAL MARATHON 2.1.30 - QUICK START
 ====================================
 
 START HERE
 ----------
 Use the single complete combined ZIP (local package or GitHub Release asset):
-  digital-marathon-cross-platform-v2.1.29-click-to-launch.zip
+  digital-marathon-cross-platform-v2.1.30-click-to-launch.zip
 Source code (zip/tar.gz) archives lack the runtimes/JAR for direct launch.
 The public release becomes available after owner publication.
 
@@ -209,7 +209,7 @@ Saved activity data stays on your computer:
 
 Moving the launch folder or Mac app does not move or erase saved history.
 
-For the version 2.1.29 product features, launch and usage guide, open:
+For the version 2.1.30 product features, launch and usage guide, open:
 
    app-files/docs/Digital-Marathon-Product-Guide.pdf
 
@@ -222,15 +222,35 @@ UPDATES AND BASIC USAGE
 -----------------------
 Open Help > About and choose Check for updates for a manual check.
 Automatic checks run at startup and every 15 minutes while the app is open.
-Choose Download Update, Remind Me Later (24 hours), or Skip This Version.
+Choose Update Now, Remind Me Later (24 hours), or Skip This Version.
 A manual check can still show a skipped release. There are no notifications
 while the app is closed. Downloads require a matching release SHA-256 checksum.
 
-The update downloads and verifies in the background while tracking continues.
-You may extract the verified ZIP into a new folder while using the current
-session. When ready, quit the current app and open the new launcher. Restarting is
-required only to activate the new build; the app does not replace loaded Java
-or native input components in place. Existing activity history stays local.
+Mini View keeps its existing size and controls. A compact update notice and
+Full View badge indicate when an update needs attention. No update panel or
+dialog opens over Mini View. Reviewing an update first restores Full View,
+then opens one nonmodal panel with release notes, progress and status.
+Repeated actions do not create duplicate panels or start duplicate downloads.
+Back to Mini closes that panel before restoring Mini View, including the
+previous position, transparency, Always on Top setting and tracking session.
+
+Update Now downloads and verifies in the background while tracking continues.
+The shared panel scrolls long release notes and supports keyboard navigation in
+both themes. Back to Mini or Close Review closes it while downloading continues.
+An error offers Retry. Release-source, product/version, safe-path, archive CRC
+and SHA-256 checks are preserved.
+
+When verified, Show Downloaded Update opens the download folder. Extract the
+ZIP into a new folder while using the current app. When ready, choose Save &
+Close for Update, then open the new Mac .app or Windows .bat yourself.
+
+Save & Close for Update saves settings, numerical history and a one-use current
+session record before closing. It waits for exports, saves, view transitions
+and other open dialogs to finish. If saving fails, the app stays open/running.
+A next launch on the same local calendar day resumes session totals, start time
+and running/paused state. Across midnight, normal daily rollover applies; saved
+history stays local. You can install later. This package does not automatically
+install, reopen the launcher, or replace loaded Java/native components in place.
 
 Basic usage analytics starts automatically at launch, including installations
 with an older saved opt-out. There is no first-run choice or analytics toggle

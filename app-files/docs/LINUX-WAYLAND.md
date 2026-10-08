@@ -1,4 +1,4 @@
-# Linux Wayland input access - Digital Marathon 2.1.29
+# Linux Wayland input access - Digital Marathon 2.1.30
 
 Wayland intentionally prevents ordinary applications from observing global keyboard and pointer events. Digital Marathon supports Wayland by reading Linux `evdev` events directly. It records only numerical totals; key identities are kept in memory only long enough to avoid counting a held key repeatedly.
 
