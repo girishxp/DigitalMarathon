@@ -1,3 +1,15 @@
+# Digital Marathon 2.1.29
+
+## One complete Mac and Windows package
+
+- Keeps Digital Marathon.app inside the same digital-marathon folder and combined ZIP as Start Digital Marathon - Windows.bat, app-files and the bundled Windows runtime. No separate Mac app download is required.
+- Retains the updater-compatible digital-marathon-cross-platform-v2.1.29-click-to-launch.zip filename and single digital-marathon root.
+- Makes both owner publishers self-contained with the original combined ZIP: derives sanitized source from allowlisted ZIP entries and generates a temporary checksum when none is supplied. Separate source/checksum downloads are not required; explicit external files are still strictly verified.
+- Documents local development without an Apple Developer account or notarization, and packaging checks for the Mac ad-hoc signature and launch from an extracted copy. Browser-downloaded unnotarized copies may still be blocked by macOS; local testing does not promise prompt-free launch for every computer or download.
+- Updates current Help, README, Quick Start, publishing/analytics notes, platform notes, notices and product guide to 2.1.29. Keeps automatic analytics, background verified update downloads, the approved Pearl & Aqua icon, Classic Award certificate, rounded transparency tabs, Mini View body, tracking and local numerical history.
+
+---
+
 # Digital Marathon 2.1.28
 
 ## Automatic basic usage analytics and simpler Help

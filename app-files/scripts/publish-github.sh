@@ -1,7 +1,7 @@
 #!/bin/bash
 # Owner-operated publisher. No credentials are embedded and dry-run never mutates GitHub.
 set -euo pipefail
-VERSION=2.1.28
+VERSION=2.1.29
 GITHUB_REPO=girishxp/DigitalMarathon
 # Explicit host keeps an unrelated enterprise login or GH_HOST out of this publisher.
 GITHUB_TARGET="github.com/$GITHUB_REPO"
@@ -9,11 +9,14 @@ BRANCH=main
 PACKAGE="$(cd "$(dirname "$0")/../.." && pwd)"
 PARENT="$(dirname "$PACKAGE")"
 REPO_DIR="${DIGITAL_MARATHON_REPO:-$HOME/Developer/DigitalMarathon}"
-SOURCE="${DIGITAL_MARATHON_SOURCE:-$PARENT/DigitalMarathon-source}"
+SOURCE="${DIGITAL_MARATHON_SOURCE:-}"
+# The release ZIP already contains the source. A separate snapshot is optional.
 ZIP_NAME="digital-marathon-cross-platform-v$VERSION-click-to-launch.zip"
 CHECKSUM_NAME="SHA256SUMS-v$VERSION.txt"
 ZIP_PATH="${DIGITAL_MARATHON_ZIP:-$PARENT/$ZIP_NAME}"
 CHECKSUM="${DIGITAL_MARATHON_CHECKSUM:-$PARENT/$CHECKSUM_NAME}"
+CHECKSUM_EXPLICIT=0
+[ -z "${DIGITAL_MARATHON_CHECKSUM:-}" ] || CHECKSUM_EXPLICIT=1
 DRY_RUN=0
 TMP=""
 fail() { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
@@ -24,7 +27,8 @@ while [ "$#" -gt 0 ]; do
     --dry-run) DRY_RUN=1; shift ;;
     --source|--zip|--checksum|--repo-dir)
       [ "$#" -ge 2 ] || fail "Missing value for $1"
-      case "$1" in --source) SOURCE="$2" ;; --zip) ZIP_PATH="$2" ;; --checksum) CHECKSUM="$2" ;; --repo-dir) REPO_DIR="$2" ;; esac
+      [ -n "$2" ] || fail "Empty value for $1"
+      case "$1" in --source) SOURCE="$2" ;; --zip) ZIP_PATH="$2" ;; --checksum) CHECKSUM="$2"; CHECKSUM_EXPLICIT=1 ;; --repo-dir) REPO_DIR="$2" ;; esac
       shift 2 ;;
     --help) printf '%s\n' 'Usage: Publish Digital Marathon.command [--dry-run] [--source PATH] [--zip PATH] [--checksum PATH] [--repo-dir PATH]'; exit 0 ;;
     *) fail "Unknown argument: $1" ;;
@@ -32,15 +36,16 @@ while [ "$#" -gt 0 ]; do
 done
 for command in git gh unzip shasum cmp find awk; do command -v "$command" >/dev/null || fail "Install $command before publishing. See PUBLISHING.md."; done
 if [ ! -f "$ZIP_PATH" ] && [ "$ZIP_PATH" = "$PARENT/$ZIP_NAME" ]; then ZIP_PATH="$HOME/Downloads/$ZIP_NAME"; fi
-if [ ! -f "$CHECKSUM" ] && [ "$CHECKSUM" = "$PARENT/$CHECKSUM_NAME" ]; then CHECKSUM="$(dirname "$ZIP_PATH")/$CHECKSUM_NAME"; fi
-[ -f "$ZIP_PATH" ] && [ "$(basename "$ZIP_PATH")" = "$ZIP_NAME" ] || fail "Expected the exact $ZIP_NAME build."
-[ -f "$CHECKSUM" ] && [ "$(basename "$CHECKSUM")" = "$CHECKSUM_NAME" ] || fail "Expected $CHECKSUM_NAME beside the build."
-[ -d "$SOURCE" ] || fail "Sanitized source snapshot missing: $SOURCE. Use --source PATH."
+if [ "$CHECKSUM_EXPLICIT" -eq 0 ] && [ ! -f "$CHECKSUM" ]; then CHECKSUM="$(dirname "$ZIP_PATH")/$CHECKSUM_NAME"; fi
+[ -f "$ZIP_PATH" ] && [ "$(basename "$ZIP_PATH")" = "$ZIP_NAME" ] || fail "Expected the exact $ZIP_NAME build. Keep the original ZIP beside digital-marathon, or use --zip PATH."
+if [ "$CHECKSUM_EXPLICIT" -eq 1 ] || [ -e "$CHECKSUM" ]; then
+  [ -f "$CHECKSUM" ] && [ "$(basename "$CHECKSUM")" = "$CHECKSUM_NAME" ] || fail "Expected the supplied $CHECKSUM_NAME checksum file."
+else
+  CHECKSUM=""
+fi
+if [ -n "$SOURCE" ]; then [ -d "$SOURCE" ] || fail "Supplied source snapshot missing: $SOURCE."; fi
 [ -d "$REPO_DIR" ] || fail "Source checkout missing: $REPO_DIR. See first-time setup in PUBLISHING.md."
-SOURCE="$(cd "$SOURCE" && pwd -P)"; REPO_DIR="$(cd "$REPO_DIR" && pwd -P)"
-[ "$SOURCE" != "$REPO_DIR" ] || fail "Source snapshot and checkout must be separate folders."
-case "$SOURCE/" in "$REPO_DIR/"*) fail "Source snapshot must be outside the checkout." ;; esac
-case "$REPO_DIR/" in "$SOURCE/"*) fail "Checkout must be outside the source snapshot." ;; esac
+REPO_DIR="$(cd "$REPO_DIR" && pwd -P)"
 [ "$(git -C "$REPO_DIR" rev-parse --show-toplevel)" = "$REPO_DIR" ] || fail "Use the repository root as --repo-dir."
 [ "$(git -C "$REPO_DIR" symbolic-ref --short HEAD)" = "$BRANCH" ] || fail "Checkout must be on main."
 [ -z "$(git -C "$REPO_DIR" status --porcelain --untracked-files=all)" ] || fail "Checkout has uncommitted files; commit them before publishing."
@@ -51,7 +56,6 @@ case "$ORIGIN" in
   https://github.com/girishxp/DigitalMarathon|https://github.com/girishxp/DigitalMarathon.git|git@github.com:girishxp/DigitalMarathon|git@github.com:girishxp/DigitalMarathon.git|ssh://git@github.com/girishxp/DigitalMarathon.git) ;;
   *) fail "Origin must be exactly girishxp/DigitalMarathon on github.com, with no embedded credentials." ;;
 esac
-[ -z "$(find "$SOURCE" -type l -print -quit)" ] || fail "Source snapshot must not contain symlinks."
 [ -z "$(find "$REPO_DIR" -path "$REPO_DIR/.git" -prune -o -type l -print -quit)" ] || fail "Checkout contains symlinks; publish from a plain sanitized source checkout."
 allowed() {
   case "$1" in */runtime/*|*/build/*|*/qa/*|*/logs/*|*/.git/*|*/.env|*/credentials*|*/activity-history*|*/activity-buckets*|*.jar|*.class|*.dll|*.dylib|*.exe|*.pem|*.key) return 1 ;; esac
@@ -71,19 +75,50 @@ private_zip_path() {
   return 1
 }
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/digital-marathon-publish.XXXXXX")"
+# Read/upload a checked temporary copy; do not mutate or depend on changing owner files.
+ORIGINAL_ZIP="$ZIP_PATH"
+cp "$ZIP_PATH" "$TMP/$ZIP_NAME" || fail "Could not stage the release ZIP."
+ZIP_PATH="$TMP/$ZIP_NAME"
+if [ -n "$CHECKSUM" ]; then
+  cp "$CHECKSUM" "$TMP/$CHECKSUM_NAME" || fail "Could not stage the supplied checksum."
+  CHECKSUM="$TMP/$CHECKSUM_NAME"
+fi
 unzip -tq "$ZIP_PATH" > "$TMP/zip-check.txt" || fail "ZIP integrity check failed."
 unzip -Z1 "$ZIP_PATH" > "$TMP/entries.txt"
-awk 'seen[$0]++ {exit 1} $0 !~ /^digital-marathon\// || $0 ~ /(^|\/)\.\.(\/|$)/ || $0 ~ /\\/ {exit 1}' "$TMP/entries.txt" || fail "ZIP must contain one safe digital-marathon root with no duplicate entries."
+unzip -Z -l "$ZIP_PATH" | awk '$1 ~ /^l/ {exit 1}' || fail "ZIP symlinks are not permitted."
+awk 'seen[tolower($0)]++ {exit 1} $0 !~ /^digital-marathon\// || $0 ~ /(^|\/)\.\.(\/|$)/ || $0 ~ /\\/ || $0 ~ /(^|\/)\.(\/|$)/ || $0 ~ /\/\// || $0 ~ /[[:cntrl:]:*?\[]/ || tolower($0) ~ /(^|\/)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.[^\/]*)?(\/|$)/ {exit 1}' "$TMP/entries.txt" || fail "ZIP must contain one safe digital-marathon root with no duplicate entries."
 while IFS= read -r entry; do if private_zip_path "$entry"; then fail "Private or QA entry refused in the release ZIP: $entry"; fi; done < "$TMP/entries.txt"
 ACTUAL_SHA="$(shasum -a 256 "$ZIP_PATH" | awk '{print $1}')"
-EXPECTED_SHA="$(awk -v name="$ZIP_NAME" '$2 == name || $2 == "*" name {print $1}' "$CHECKSUM")"
-[[ "$EXPECTED_SHA" =~ ^[0-9a-fA-F]{64}$ ]] && [ "$ACTUAL_SHA" = "$(printf '%s' "$EXPECTED_SHA" | tr 'A-F' 'a-f')" ] || fail "ZIP SHA-256 does not match its checksum file."
+if [ -n "$CHECKSUM" ]; then
+  EXPECTED_SHA="$(awk -v name="$ZIP_NAME" '$2 == name || $2 == "*" name {print $1}' "$CHECKSUM")"
+  [[ "$EXPECTED_SHA" =~ ^[0-9a-fA-F]{64}$ ]] && [ "$ACTUAL_SHA" = "$(printf '%s' "$EXPECTED_SHA" | tr 'A-F' 'a-f')" ] || fail "ZIP SHA-256 does not match its checksum file."
+fi
 [ "$(unzip -p "$ZIP_PATH" digital-marathon/app-files/VERSION | tr -d '\r\n')" = "$VERSION" ] || fail "ZIP application version mismatch."
 unzip -p "$ZIP_PATH" digital-marathon/app-files/app/digital-marathon.jar > "$TMP/app.jar"
 unzip -p "$TMP/app.jar" META-INF/MANIFEST.MF | tr -d '\r' | awk -v version="$VERSION" '$0 == "Implementation-Version: " version {found=1} END {exit !found}' || fail "Packaged application JAR version mismatch."
 unzip -p "$ZIP_PATH" 'digital-marathon/Digital Marathon.app/Contents/Info.plist' > "$TMP/app.plist"
 [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$TMP/app.plist")" = com.girishgupta.inputactivitytracker ] || fail "Wrong Mac product identifier."
 [ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$TMP/app.plist")" = "$VERSION" ] || fail "Mac application version mismatch."
+# Build an isolated allowlisted snapshot from the verified archive, never the live profile.
+if [ -z "$SOURCE" ]; then
+  SOURCE="$TMP/source"
+  mkdir "$SOURCE"
+  while IFS= read -r entry; do
+    case "$entry" in */) continue ;; esac
+    relative="${entry#digital-marathon/}"
+    if allowed "$relative"; then
+      mkdir -p "$SOURCE/$(dirname "$relative")"
+      unzip -p "$ZIP_PATH" "$entry" > "$SOURCE/$relative" || fail "Could not read packaged source: $relative"
+      case "$relative" in *.command|*.sh) chmod 755 "$SOURCE/$relative" ;; esac
+    fi
+  done < "$TMP/entries.txt"
+  [ -f "$SOURCE/.gitignore" ] && [ -f "$SOURCE/.gitattributes" ] || fail "Packaged publishing rules are missing. Use the corrected complete ZIP."
+fi
+SOURCE="$(cd "$SOURCE" && pwd -P)"
+[ "$SOURCE" != "$REPO_DIR" ] || fail "Source snapshot and checkout must be separate folders."
+case "$SOURCE/" in "$REPO_DIR/"*) fail "Source snapshot must be outside the checkout." ;; esac
+case "$REPO_DIR/" in "$SOURCE/"*) fail "Checkout must be outside the source snapshot." ;; esac
+[ -z "$(find "$SOURCE" -type l -print -quit)" ] || fail "Source snapshot must not contain symlinks."
 [ "$(tr -d '\r\n' < "$SOURCE/app-files/VERSION")" = "$VERSION" ] || fail "Source version mismatch."
 [ -f "$SOURCE/app-files/src/com/inputactivitytracker/Main.java" ] || fail "Digital Marathon Main.java is missing."
 SOURCE_FILES=()
@@ -123,7 +158,13 @@ if awk -v ref="refs/tags/v$VERSION" '$2 == ref || $2 == ref "^{}" {found=1} END 
 if git -C "$REPO_DIR" show-ref --verify --quiet "refs/tags/v$VERSION"; then fail "Local tag v$VERSION already exists."; fi
 gh api "repos/$GITHUB_REPO/releases" --hostname github.com --paginate --jq '.[].tag_name' > "$TMP/releases.txt"
 if grep -Fxq "v$VERSION" "$TMP/releases.txt"; then fail "Release v$VERSION already exists, including a draft. Use a new version."; fi
-printf '\nVerified Digital Marathon %s\nRepository: %s\nCheckout: %s\nSource files: %s\nZIP: %s\nSHA-256: %s\n' "$VERSION" "$GITHUB_REPO" "$REPO_DIR" "${#SOURCE_FILES[@]}" "$ZIP_PATH" "$ACTUAL_SHA"
+# Only generate the release checksum after every archive, source and owner check passes.
+if [ -z "$CHECKSUM" ]; then
+  CHECKSUM="$TMP/$CHECKSUM_NAME"
+  printf '%s  %s\n' "$ACTUAL_SHA" "$ZIP_NAME" > "$CHECKSUM"
+  printf '\nChecksum generated from the checked ZIP; no separate download is required.\n'
+fi
+printf '\nVerified Digital Marathon %s\nRepository: %s\nCheckout: %s\nSource files: %s\nZIP: %s\nSHA-256: %s\n' "$VERSION" "$GITHUB_REPO" "$REPO_DIR" "${#SOURCE_FILES[@]}" "$ORIGINAL_ZIP" "$ACTUAL_SHA"
 if [ "$DRY_RUN" -eq 1 ]; then printf '\nDRY RUN PASSED. No checkout, tag, GitHub release or analytics data changed.\n'; exit 0; fi
 printf '\nPublish this verified source and package to GitHub? [y/N] '
 IFS= read -r answer

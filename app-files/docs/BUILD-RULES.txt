@@ -1,0 +1,49 @@
+DIGITAL MARATHON - RULES FOR EVERY FUTURE BUILD
+
+Deliver one ZIP containing exactly one digital-marathon folder. The folder must
+contain Digital Marathon.app and Start Digital Marathon - Windows.bat together
+with the complete app-files directory. Never supply the Mac app as a separate
+required download or make users install Java or use Terminal to launch the app.
+
+Build the Mac app locally from the current source, retain its bundled runtime,
+approved icon and native library, and apply a valid local ad-hoc signature.
+An Apple Developer account or notarization is not required for local development.
+Apple signing/notarization remains optional future work for public distribution.
+
+Before packaging, check that VERSION, both app JARs, Mac Info.plist and launcher
+configuration contain the same new version. Include current Help, documentation
+and PDF guide. Keep the approved UI, history/preferences and analytics behavior.
+
+Run app-files/scripts/package-local-mac.sh on a Mac. It checks required Mac and
+Windows files, version consistency, icons, embedded guide/resources, native
+architecture, executable permissions, local signature, archive CRC, safe paths,
+file contents/modes, a single shared folder and a fresh extracted signature.
+It refuses existing ZIP/checksum files rather than silently replacing a build.
+
+Launch the app from a fresh LOCAL extraction of the final ZIP before delivery.
+Test the actual app image; don't validate only a separately installed app.
+Use an isolated test profile or close the old copy before opening the new one,
+because all normal copies share the same saved activity data.
+
+Do not remove quarantine metadata, disable Gatekeeper or reset input permissions
+automatically to make a distribution test pass. Keep permission repair explicit.
+Browser-downloaded unnotarized copies remain subject to Apple's download checks;
+no local packaging method can guarantee a warning-free download on every Mac.
+Developer ID signing and notarization may reduce public-download launch
+friction later; they do not guarantee launch on every computer or download.
+
+Preserve published release assets and tags. Use a new version for each build and
+calculate the ZIP checksum only after all build and documentation work is done.
+
+OWNER PUBLISHING FROM THE SAME COMPLETE ZIP
+
+Keep the original combined ZIP beside its extracted digital-marathon folder,
+in Downloads, or choose it using --zip. The owner publisher must derive a
+sanitized source snapshot from allowlisted ZIP files, including packaged
+.gitignore/.gitattributes, and compute SHA-256 directly from the ZIP. No separate
+source snapshot or checksum download is required. If a source snapshot or
+checksum is explicitly supplied, validate it strictly against the approved
+ZIP. Generate the checksum asset temporarily when no external file is supplied.
+Keep source credentials, runtimes, binaries, activity data and QA files out of
+the derived repository snapshot. Verify both uploaded release assets before
+publishing Latest. App users still need only the complete combined ZIP.

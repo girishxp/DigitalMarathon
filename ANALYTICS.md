@@ -1,6 +1,6 @@
 # Updates and basic usage analytics
 
-Digital Marathon 2.1.28 keeps activity history on your computer. GitHub delivers releases; basic usage analytics starts automatically at launch to help the owner understand installations, versions and feature use. There is no first-run choice or user-facing analytics toggle. Manual update checks are in **Help > About > Check for updates**.
+Digital Marathon 2.1.29 keeps activity history on your computer. GitHub delivers releases; basic usage analytics starts automatically at launch to help the owner understand installations, versions and feature use. There is no first-run choice or user-facing analytics toggle. Manual update checks are in **Help > About > Check for updates**.
 
 ## Activity data stays local
 
@@ -11,7 +11,7 @@ Mouse distance, key presses, mouse clicks, active time, ranges, timestamps in ac
 | Connection | Information used |
 |---|---|
 | GitHub update check | Requests the latest release metadata for `girishxp/DigitalMarathon`; the User-Agent includes the app version, and GitHub receives ordinary network-request information. |
-| GitHub package download | Downloads the selected release ZIP and its SHA-256 checksum. GitHub exposes aggregate asset-download counts to the owner. |
+| GitHub package download | Downloads the selected complete combined Mac/Windows release ZIP and its SHA-256 checksum. GitHub exposes aggregate asset-download counts to the owner. |
 | PostHog basic usage | Basic product/runtime details, random installation/session IDs, launch/session timing, and limited state/feature/update/error categories listed below. |
 
 Installation IDs are generated randomly. They are not based on a name, email, device serial number or hardware fingerprint. Feature events indicate that a control was used; they do not include input counts, activity totals, selected ranges, text or certificate names. No session recording, autocapture or user profiles are required for this integration.
@@ -22,7 +22,7 @@ Like any network connection, the source IP exists in transit and can reach the c
 
 ## Update actions
 
-- **Automatic update checks**: checks at startup and every 15 minutes while the app is running. A manual **Check for updates** action is in **Help > About**. Version 2.1.28 restores automatic checks for older saved disabled preferences; no update-check switch is shown.
+- **Automatic update checks**: checks at startup and every 15 minutes while the app is running. A manual **Check for updates** action is in **Help > About**. Version 2.1.29 restores automatic checks for older saved disabled preferences; no update-check switch is shown.
 - **Download Update**: downloads a newer release in the background only after your action. Tracking and the current session continue. The package is accepted only when its SHA-256 matches the release checksum.
 - **Remind Me Later**: postpones the same release prompt for 24 hours.
 - **Skip This Version**: suppresses automatic prompts for that release. A manual check can still show it.

@@ -254,9 +254,6 @@ if [[ ! -e "$APP" ]]; then
   printf '%s\n' "$VERSION" > "$STAMP"
 fi
 
-if [[ "$PLATFORM" == "mac" ]]; then
-  xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
-fi
 if ! launch_existing; then
   echo "Built application executable was not found under: $APP"
   exit 1

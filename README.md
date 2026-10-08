@@ -1,4 +1,4 @@
-# Digital Marathon 2.1.28
+# Digital Marathon 2.1.29
 
 Digital Marathon is a privacy-first desktop activity utility. It tracks numerical mouse-distance, keyboard-press, mouse-click, and active-time totals without storing what you type.
 
@@ -6,13 +6,13 @@ The **Pearl & Aqua** brand icon uses modestly darker color and improved renderin
 
 Full View and Help keep their existing header icon sizes. Small icons are filtered at the display's actual pixel resolution for clearer detail on Retina and other displays.
 
-Version 2.1.28 starts basic usage analytics automatically and simplifies Help, with manual update checks in About. Verified updates download in the background while the current session continues; restarting is required only to run the new version. The approved larger macOS Dock icon, in-app artwork, certificate layout and transparency bars remain the same.
+Version 2.1.29 keeps the complete Mac app, Windows launcher and Windows runtime inside one combined ZIP and its shared folder. Local development and testing do not require an Apple Developer account or notarization. Basic usage analytics remains automatic, with manual update checks in Help > About. Verified updates download in the background while the current session continues; restarting is required only to run the new version. The approved larger macOS Dock icon, in-app artwork, certificate layout and transparency bars remain the same.
 
 ## Start here
 
-On GitHub, download **digital-marathon-cross-platform-v2.1.28-click-to-launch.zip** from the **Release assets** at [Digital Marathon Releases](https://github.com/girishxp/DigitalMarathon/releases/latest). GitHub's automatic **Source code (zip/tar.gz)** archives contain sanitized source and lack the runtimes/JAR needed for direct launch. The public release becomes available only after owner publication.
+On GitHub, download **digital-marathon-cross-platform-v2.1.29-click-to-launch.zip** from the **Release assets** at [Digital Marathon Releases](https://github.com/girishxp/DigitalMarathon/releases/latest). GitHub's automatic **Source code (zip/tar.gz)** archives contain sanitized source and lack the runtimes/JAR needed for direct launch. The public release becomes available only after owner publication.
 
-Extract the ZIP completely, open the **`digital-marathon`** folder, and double-click the launcher for your computer:
+Use the single complete **digital-marathon-cross-platform-v2.1.29-click-to-launch.zip**. Extract it completely, open the **`digital-marathon`** folder, and double-click the launcher inside it for your computer:
 
 | Computer | File to open |
 |---|---|
@@ -22,7 +22,7 @@ Extract the ZIP completely, open the **`digital-marathon`** folder, and double-c
 
 The Mac app and Windows launcher are together in this **one folder**. Both include their Java runtime and launch immediately without installing Java, building the app, using a terminal, or downloading anything. Linux retains the original build-on-first-launch launcher and may download its build tools.
 
-On Windows, keep the entire extracted folder together; the `.bat` launcher needs `app-files/`. On Mac, you may launch from this folder or copy **`Digital Marathon.app`** to Applications. The Mac app is self-contained.
+Keep the entire extracted **`digital-marathon`** folder together. The Mac **`Digital Marathon.app`** is included inside that folder beside **`Start Digital Marathon - Windows.bat`**; it is not a separate download. The Windows `.bat` needs `app-files/`, including its bundled runtime. Launch the Mac app from the same shared folder.
 
 This package supports **Apple Silicon Macs and x64 Windows PCs**. It does not include an Intel Mac app or a native Windows ARM runtime.
 
@@ -45,7 +45,7 @@ digital-marathon/
 `-- app-files/                      Windows runtime, source, docs and support files
 ```
 
-The updated product guide is at **`app-files/docs/Digital-Marathon-Product-Guide.pdf`**. It covers version 2.1.28, the shared launch folder, controls, certificate, privacy and troubleshooting. Release changes are listed in **`CHANGELOG.md`**.
+The updated product guide is at **`app-files/docs/Digital-Marathon-Product-Guide.pdf`**. It covers version 2.1.29, the shared launch folder, controls, certificate, privacy and troubleshooting. Release changes are listed in **`CHANGELOG.md`**.
 
 ## Updates and basic usage analytics
 
@@ -57,7 +57,7 @@ Basic usage analytics starts automatically when the app launches, including inst
 
 Usage events contain basic app/runtime details, random installation/session IDs, launch/session timing and limited state, feature, update and error categories. App-session timing is separate from the tracked Active time counter. Source IP exists in ordinary network transit; the app does not derive location and requests no GeoIP enrichment, person profiles, autocapture or session recording. Input counts, activity totals, typed text, certificate names, file paths, selected ranges, history and exports are never transmitted. GitHub provides aggregate release-download counts. Read **ANALYTICS.md** for the exact fields and reporting limits.
 
-For this app, use **Publish Digital Marathon.command** on Mac or **Publish Digital Marathon - Windows.bat** on Windows. A `.command` file runs on Mac, not Windows; **Publish PulseStudio.command** belongs to PulseStudio. Both Digital Marathon publishers validate a sanitized source snapshot and exact release ZIP, upload a draft, verify both assets, then publish the same repository's Latest release. Git and GitHub CLI are required only for publishing. Publishing a newer Release as Latest makes update prompts available in running Digital Marathon 2.1.27 or later with automatic checks enabled. Pushing source commits alone does not. Read **PUBLISHING.md** before using the owner tools.
+For this app, use **Publish Digital Marathon.command** on Mac or **Publish Digital Marathon - Windows.bat** on Windows. A `.command` file runs on Mac, not Windows; **Publish PulseStudio.command** belongs to PulseStudio. Both Digital Marathon publishers use the original combined ZIP: they derive sanitized source from its allowlisted files, compute a temporary checksum when no separate one is supplied, upload a draft, verify both assets, then publish the same repository's Latest release. Keep the original ZIP beside the extracted folder, in Downloads, or select it with --zip. No separate source snapshot or checksum download is required; explicitly supplied files are strictly verified. Git and GitHub CLI are required only for publishing. Publishing a newer Release as Latest makes update prompts available in running Digital Marathon 2.1.27 or later with automatic checks enabled. Pushing source commits alone does not. Read **PUBLISHING.md** before using the owner tools.
 
 ## macOS first launch
 
@@ -67,7 +67,7 @@ Enable **Digital Marathon** in **System Settings > Privacy & Security > Input Mo
 
 The **Permissions help** control opens a compact window in the current theme, with short setup steps and **Open Input Monitoring** and **Open Accessibility** shortcuts. Detailed recovery steps remain in Help > Troubleshooting.
 
-The Mac app has a local ad-hoc signature and is not notarized by Apple, so macOS may show a first-open security prompt. It does not need Apple Command Line Tools.
+This local development package has an ad-hoc Mac signature and does not require an Apple Developer account or Apple notarization. Apple Command Line Tools are not needed to run it. A browser-downloaded unnotarized copy can still be blocked by macOS; successful local testing does not guarantee prompt-free launch for every Mac or download. Developer ID signing and notarization can be considered later for public distribution.
 
 If counting still fails after permissions appear enabled, run **`REPAIR_MAC_PERMISSIONS.command`**, re-enable Digital Marathon in Input Monitoring/Accessibility, and reopen the app. If you moved the app to Applications, reopen it from there after the repair.
 
@@ -162,6 +162,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File app-files/scripts/compile-so
 
 These scripts fetch only a missing pinned **JNativeHook 2.2.2** dependency from official Maven Central, compile source/resources/PDF and write `app-files/app/digital-marathon.jar`. They do not launch the application or modify the Mac bundle. Existing platform build scripts can then consume this JAR; a Mac native build also needs Apple Command Line Tools. Source compilation does not add the runtimes missing from GitHub source archives.
 
-Application source, native source, icons, the updated product guide, platform help, and provided license texts are included under `app-files/`. Help & About documents the version 2.1.28 controls and launch guidance. The bundled Java 21 runtimes allow direct Mac and Windows launch. Windows uses Java 21 because its capture-privacy component uses that version's preview API; use the supplied launcher and runtime together. Runtime license notices are included with the runtimes.
+Application source, native source, icons, the updated product guide, platform help, and provided license texts are included under `app-files/`. Help & About documents the version 2.1.29 controls and launch guidance. The bundled Java 21 runtimes allow direct Mac and Windows launch. Windows uses Java 21 because its capture-privacy component uses that version's preview API; use the supplied launcher and runtime together. Runtime license notices are included with the runtimes.
 
-The package remains a single ZIP that extracts into `digital-marathon/`, with both the Mac `.app` and Windows `.bat` at the top level.
+Every complete distribution is a single ZIP that extracts into `digital-marathon/`. It must contain `Digital Marathon.app`, the Windows `.bat`, the Windows runtime and application files together. Mac builds are checked for a valid local ad-hoc signature and launch from an extracted copy before delivery; no separate Mac app package is needed.

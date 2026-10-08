@@ -1,10 +1,10 @@
-DIGITAL MARATHON 2.1.28 - QUICK START
+DIGITAL MARATHON 2.1.29 - QUICK START
 ====================================
 
 START HERE
 ----------
-On GitHub, download the combined Release asset:
-  digital-marathon-cross-platform-v2.1.28-click-to-launch.zip
+Use the single complete combined ZIP (local package or GitHub Release asset):
+  digital-marathon-cross-platform-v2.1.29-click-to-launch.zip
 Source code (zip/tar.gz) archives lack the runtimes/JAR for direct launch.
 The public release becomes available after owner publication.
 
@@ -40,8 +40,12 @@ MACOS
 4. The app retries automatically after permission is enabled. Quit and reopen
    if macOS asks.
 
-The app has a local ad-hoc signature and is not notarized by Apple, so a
-first-open security prompt may appear. Apple Command Line Tools are not needed.
+Local development and testing do not require an Apple Developer account or
+notarization. This package uses a local ad-hoc signature; Apple Command Line
+Tools are not needed to run it. Browser-downloaded unnotarized copies can still
+be blocked by macOS. Local testing does not guarantee prompt-free launch on
+every Mac or downloaded copy. Developer ID signing and notarization may be
+considered later for public distribution.
 
 Permissions help opens a compact window in your current theme. Use Open Input
 Monitoring or Open Accessibility for the matching System Settings pane.
@@ -205,7 +209,7 @@ Saved activity data stays on your computer:
 
 Moving the launch folder or Mac app does not move or erase saved history.
 
-For the version 2.1.28 product features, launch and usage guide, open:
+For the version 2.1.29 product features, launch and usage guide, open:
 
    app-files/docs/Digital-Marathon-Product-Guide.pdf
 
@@ -253,9 +257,13 @@ OWNER PUBLISHING
 Use Publish Digital Marathon.command on Mac and
 Publish Digital Marathon - Windows.bat on Windows. A .command file does not
 run on Windows; Publish PulseStudio.command belongs to the PulseStudio app.
-These owner tools require Git and GitHub CLI. They require a reviewed
-source snapshot and the exact ZIP/checksum, support --dry-run, and verify a draft
-before marking it Latest. See PUBLISHING.md. Normal app use needs neither tool.
+These owner tools require Git and GitHub CLI. Keep the original combined ZIP
+beside the extracted folder or in Downloads, or select it with --zip. They
+derive sanitized source from that ZIP and compute a temporary checksum when no
+separate one is supplied. No separate source/checksum download is required.
+Explicitly supplied source or checksum files must pass strict verification.
+They support --dry-run and verify a draft before marking it Latest. See
+PUBLISHING.md. Normal app use needs neither publishing tool.
 
 Publishing a newer Release as Latest from either Digital Marathon publisher
 makes prompts available in running Digital Marathon 2.1.27 or later with
