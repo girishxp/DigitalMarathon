@@ -23,7 +23,7 @@ final class AppServices implements AutoCloseable {
         String manifest = AppServices.class.getPackage().getImplementationVersion();
         if (validVersion(manifest)) return manifest;
         String launcher = System.getProperty("jpackage.app-version", "");
-        return validVersion(launcher) ? launcher : "2.1.30";
+        return validVersion(launcher) ? launcher : "2.1.31";
     }
     private static boolean validVersion(String value) {
         return value != null && value.matches("(?:0|[1-9][0-9]{0,8})\\.(?:0|[1-9][0-9]{0,8})\\.(?:0|[1-9][0-9]{0,8})");

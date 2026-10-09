@@ -1,13 +1,13 @@
 # Publish Digital Marathon to GitHub
 
-These owner-operated launchers publish Digital Marathon **2.1.30** to the public repository **girishxp/DigitalMarathon**. The PulseStudio publisher belongs to a different application; use these Digital Marathon publishers for this repository. Nothing is published merely by running the app.
+These owner-operated launchers publish Digital Marathon **2.1.31** to the public repository **girishxp/DigitalMarathon**. The PulseStudio publisher belongs to a different application; use these Digital Marathon publishers for this repository. Nothing is published merely by running the app.
 
 - Mac: **Publish Digital Marathon.command**
 - Windows: **Publish Digital Marathon - Windows.bat**
 
 The Mac `.command` file does not run on Windows. The two platform-specific launchers publish the same combined release to the same repository; either host can publish it. **Publish PulseStudio.command** publishes PulseStudio and is not the publisher for this app.
 
-Install Git and GitHub CLI, then sign in once with `gh auth login --hostname github.com` as `girishxp`. Normal users need neither tool to run Digital Marathon. Tokens remain in GitHub CLI's credential storage; none are included in the application or publishers.
+Install Git and GitHub CLI. The Mac owner publisher also requires **Python 3** solely for safe local JSON serialization; Windows uses native PowerShell `ConvertTo-Json`. Normal `.app`/`.bat` launch uses bundled Java and needs neither Python nor publisher tools. Then sign in once with `gh auth login --hostname github.com` as `girishxp`. Normal users need neither tool to run Digital Marathon. Tokens remain in GitHub CLI's credential storage; none are included in the application or publishers.
 
 ## First-time owner setup
 
@@ -16,17 +16,17 @@ Create a **public** `girishxp/DigitalMarathon` repository on GitHub. Prepare a c
 Keep the **original combined ZIP** beside the extracted `digital-marathon` folder, or select it with `--zip PATH`. The publisher can also look for the exact expected ZIP in Downloads. This is the one complete package: no separate source snapshot or checksum download is required.
 
 ```text
-digital-marathon-cross-platform-v2.1.30-click-to-launch.zip
+digital-marathon-cross-platform-v2.1.31-click-to-launch.zip
 digital-marathon/
 ```
 
-The publisher derives a temporary sanitized source snapshot from the ZIP's allowlisted source, resources, documentation and scripts, including the packaged `.gitignore` and `.gitattributes`. It computes SHA-256 directly from the original ZIP and creates a temporary checksum file for the release. If you explicitly supply a checksum file, it must match; an invalid supplied checksum is rejected rather than ignored.
+The publisher derives a temporary sanitized source snapshot from the ZIP's allowlisted source, resources, documentation and scripts, including the packaged `.gitignore` and `.gitattributes`. It computes SHA-256 directly from the original ZIP and creates a temporary checksum file plus `digital-marathon-update.json` for the release. The JSON is generated in the publisher’s temporary directory from the verified ZIP and exact release notes; it is not another owner-downloaded sidecar or a file inside the ZIP. If you explicitly supply a checksum file, it must match; an invalid supplied checksum is rejected rather than ignored.
 
 If paths differ, use `--zip` and `--repo-dir` or set `DIGITAL_MARATHON_ZIP` and `DIGITAL_MARATHON_REPO`. Optional `--source`/`DIGITAL_MARATHON_SOURCE` and `--checksum`/`DIGITAL_MARATHON_CHECKSUM` inputs are available for reviewed external files. A supplied source snapshot must match the approved ZIP source, and a supplied checksum must pass strict verification. The publisher never guesses the newest ZIP or publishes an unrelated product.
 
 ## One complete combined package
 
-The release asset must be **digital-marathon-cross-platform-v2.1.30-click-to-launch.zip**, with a single **digital-marathon/** root. Inside it, include **Digital Marathon.app**, **Start Digital Marathon - Windows.bat**, the complete **app-files/** application and Windows runtime, and the current documentation. The Mac app belongs inside this same combined folder and ZIP; do not replace it with a separate Mac download or a source-only archive.
+The release asset must be **digital-marathon-cross-platform-v2.1.31-click-to-launch.zip**, with a single **digital-marathon/** root. Inside it, include **Digital Marathon.app**, **Start Digital Marathon - Windows.bat**, the complete **app-files/** application and Windows runtime, and the current documentation. The Mac app belongs inside this same combined folder and ZIP; do not replace it with a separate Mac download or a source-only archive.
 
 Local development and testing require no Apple Developer account or notarization. Packaging must verify the Mac bundle's local ad-hoc signature and test launch from an extracted package. A browser-downloaded unnotarized copy can still be blocked by macOS; local launch checks do not guarantee prompt-free use on every Mac or download. Developer ID signing and notarization are an optional later step for public distribution, not a requirement for this local development build. None of these packaging checks require removing quarantine attributes or resetting macOS security settings.
 
@@ -36,7 +36,7 @@ Mac example:
 
 ```bash
 ./"Publish Digital Marathon.command" --dry-run \
-  --zip "/path with spaces/digital-marathon-cross-platform-v2.1.30-click-to-launch.zip" \
+  --zip "/path with spaces/digital-marathon-cross-platform-v2.1.31-click-to-launch.zip" \
   --repo-dir "$HOME/Developer/DigitalMarathon"
 ```
 
@@ -44,7 +44,7 @@ Windows example:
 
 ```powershell
 & '.\Publish Digital Marathon - Windows.bat' --dry-run `
-  --zip 'C:\Release Files\digital-marathon-cross-platform-v2.1.30-click-to-launch.zip' `
+  --zip 'C:\Release Files\digital-marathon-cross-platform-v2.1.31-click-to-launch.zip' `
   --repo-dir "$HOME\Developer\DigitalMarathon"
 ```
 
@@ -58,12 +58,24 @@ When the dry run passes, double-click the appropriate publisher (or rerun the sa
 2. Derive a temporary sanitized source snapshot from allowlisted ZIP entries, including `.gitignore` and `.gitattributes`. Reject private/compiled/runtime/QA files and obvious credentials. An optional external source snapshot must match the verified ZIP source.
 3. Require an authenticated owner, configured Git author/committer identity, a public correct repository, exact origin, clean synchronized `main`, and an unused version/tag.
 4. Copy only validated source files into the checkout and remove obsolete tracked files within that same validated scope. Commit changed source, push `main`, create/push an annotated version tag and verify that it resolves to the reviewed commit. Existing local uncommitted work is never reset or cleaned.
-5. Create a **draft** release targeting the pushed commit, upload the ZIP and checksum, download both assets again and compare their hashes/bytes.
-6. Publish and mark **Latest** only after both uploaded assets verify, then check GitHub's Latest endpoint.
+5. Create a **draft** release targeting the pushed commit. Generate `digital-marathon-update.json` from the verified ZIP and exact release body. Upload the ZIP, checksum and metadata, download all three again and verify their hashes/bytes and metadata values.
+6. Publish and mark **Latest** only after all three uploaded assets verify, then check GitHub's Latest endpoint.
 
-The release contains the one combined Mac/Windows ZIP plus its checksum, which the publisher can generate. Users need only the combined ZIP to run the app; owners need no second source/checksum download to publish it. GitHub separately offers automatic source archives. The source repository excludes bundled runtimes, `.app`/JAR/executable/native program binaries, QA/build output, logs, activity history, certificate downloads and credentials. Icon resources and the product PDF are retained as source/documentation assets.
+The release contains one combined Mac/Windows ZIP, its checksum and the generated public `digital-marathon-update.json` asset. Users need only the combined ZIP to run the app; owners need no second source/checksum download to publish it. GitHub separately offers automatic source archives. The source repository excludes bundled runtimes, `.app`/JAR/executable/native program binaries, QA/build output, logs, activity history, certificate downloads and credentials. Icon resources and the product PDF are retained as source/documentation assets.
 
-Tell users to download **digital-marathon-cross-platform-v2.1.30-click-to-launch.zip** from the Release assets. GitHub's **Source code (zip/tar.gz)** archives contain the sanitized repository and lack the runtime/JAR needed for direct launch. Pushing a source commit alone does not make an app update available: publishing a newer **Release** as Latest does. Prompts appear only when the app is running.
+Tell users to download **digital-marathon-cross-platform-v2.1.31-click-to-launch.zip** from the Release assets. GitHub's **Source code (zip/tar.gz)** archives contain the sanitized repository and lack the runtime/JAR needed for direct launch. Pushing a source commit alone does not make an app update available: publishing a newer **Release** as Latest does. Prompts appear only when the app is running.
+
+## Public metadata fallback
+
+GitHub's unauthenticated API allowance is 60 requests per hour per originating IP. Apps and people on a shared network can exhaust it together, even with internet access working. Version 2.1.31 falls back to the fixed public asset at:
+
+https://github.com/girishxp/DigitalMarathon/releases/latest/download/digital-marathon-update.json
+
+The schema is `schema: 1`, `app: "digital-marathon"`, the release `version`, plain-string `notes` (at most 6,000 characters from the exact release body), and `asset: {name, bytes, sha256}`. `name` is the exact versioned combined ZIP filename, `bytes` is its verified byte count, and `sha256` is 64 lowercase hexadecimal characters without a prefix. There are no URLs in this metadata; the app derives download URLs from the fixed repository. The publisher verifies the generated JSON and its uploaded copy before making the draft Latest. Do not embed a self-referential copy inside the ZIP: an archive cannot contain its own complete-archive SHA-256. The generation logic is included in the combined package; no second metadata download is needed to publish.
+
+The app accepts only this repository, this product, a valid version/filename, size and SHA-256, then applies the existing safe-path, product/version and archive CRC checks. No GitHub token is embedded and validation is not weakened. A reported API rate limit replaces the misleading internet-connection error. Matching installed and Latest versions are up to date, with no offer. See [GitHub's rate-limit documentation](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
+
+Existing 2.1.29 and 2.1.30 apps cannot gain new fallback code remotely. After the API quota resets, reopen them or choose Help > About > Check for updates. On a network with frequent exhausted quotas, install 2.1.31 once manually from Release assets. Publish the metadata with every future release so those updated apps can find subsequent versions when the API is unavailable.
 
 ## If something fails
 
@@ -73,9 +85,9 @@ Inspect any partial draft and its target commit before deciding how to recover. 
 
 ## Updates and basic analytics
 
-Publishing a newer version as **Latest** using either Digital Marathon publisher makes it available to existing Digital Marathon **2.1.27 or later** installations that have automatic checks enabled. Apps check `girishxp/DigitalMarathon` at startup and every 15 minutes while running; a user can check manually from **Help > About > Check for updates**. Pushing source commits alone does not trigger update notifications. The app does not notify while it is closed. Version 2.1.30 restores automatic checks if an older preference had disabled them; no update-check switch is shown. Version 2.1.26 and older do not contain this updater. An unpublished/private repository yields no available public update.
+Publishing a newer version as **Latest** using either Digital Marathon publisher makes it available to existing Digital Marathon **2.1.27 or later** installations that have automatic checks enabled. Apps check `girishxp/DigitalMarathon` about 2.5 seconds after startup and every 15 minutes while running; a user can check manually from **Help > About > Check for updates**. Pushing source commits alone does not trigger update notifications. The app does not notify while it is closed. Version 2.1.31 restores automatic checks if an older preference had disabled them; no update-check switch is shown. Version 2.1.26 and older do not contain this updater. An unpublished/private repository yields no available public update.
 
-Version 2.1.30 presents update attention in Mini View through a compact notice and Full View badge, preserving its existing dimensions and controls. Review restores Full View before opening one shared nonmodal release-notes/progress panel. Back to Mini closes that panel before restoring the previous Mini position, transparency, Always on Top setting and session. Repeated actions do not open duplicate panels or downloads. Update dialogs do not appear while the app is in Mini View.
+Version 2.1.31 presents update attention in Mini View through a compact notice and Full View badge, preserving its existing dimensions and controls. Review restores Full View before opening one shared nonmodal release-notes/progress panel. Back to Mini closes that panel before restoring the previous Mini position, transparency, Always on Top setting and session. Repeated actions do not open duplicate panels or downloads. Update dialogs do not appear while the app is in Mini View.
 
 Users choose **Update Now**, **Remind Me Later** for 24 hours or **Skip This Version**. Release notes scroll in the shared nonmodal panel, with keyboard navigation in both themes. Downloading and verification continue while tracking runs; **Back to Mini** or **Close Review** closes the panel without interrupting the download. An error offers **Retry**. Release-source, product/version, safe-path, archive CRC and SHA-256 validation remain required.
 

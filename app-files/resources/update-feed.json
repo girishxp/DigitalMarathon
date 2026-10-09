@@ -8,5 +8,14 @@
   "checkIntervalMinutes": 15,
   "remindLaterHours": 24,
   "requireSha256": true,
-  "installation": "verified-download-manual-extract"
+  "installation": "verified-download-manual-extract",
+  "fallbackMetadataUrl": "https://github.com/girishxp/DigitalMarathon/releases/latest/download/digital-marathon-update.json",
+  "fallbackConditions": [
+    "github-api-rate-limit",
+    "github-api-outage",
+    "github-api-connection-failure"
+  ],
+  "metadataSchema": 1,
+  "metadataMaxBytes": 65536,
+  "requireAppIdentity": true
 }

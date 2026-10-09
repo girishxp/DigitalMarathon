@@ -1,7 +1,7 @@
 #!/bin/bash
 # Owner-operated publisher. No credentials are embedded and dry-run never mutates GitHub.
 set -euo pipefail
-VERSION=2.1.30
+VERSION=2.1.31
 GITHUB_REPO=girishxp/DigitalMarathon
 # Explicit host keeps an unrelated enterprise login or GH_HOST out of this publisher.
 GITHUB_TARGET="github.com/$GITHUB_REPO"
@@ -13,6 +13,7 @@ SOURCE="${DIGITAL_MARATHON_SOURCE:-}"
 # The release ZIP already contains the source. A separate snapshot is optional.
 ZIP_NAME="digital-marathon-cross-platform-v$VERSION-click-to-launch.zip"
 CHECKSUM_NAME="SHA256SUMS-v$VERSION.txt"
+FEED_NAME="digital-marathon-update.json"
 ZIP_PATH="${DIGITAL_MARATHON_ZIP:-$PARENT/$ZIP_NAME}"
 CHECKSUM="${DIGITAL_MARATHON_CHECKSUM:-$PARENT/$CHECKSUM_NAME}"
 CHECKSUM_EXPLICIT=0
@@ -34,7 +35,7 @@ while [ "$#" -gt 0 ]; do
     *) fail "Unknown argument: $1" ;;
   esac
 done
-for command in git gh unzip shasum cmp find awk; do command -v "$command" >/dev/null || fail "Install $command before publishing. See PUBLISHING.md."; done
+for command in git gh unzip shasum cmp find awk python3; do command -v "$command" >/dev/null || fail "Install $command before publishing. See PUBLISHING.md."; done
 if [ ! -f "$ZIP_PATH" ] && [ "$ZIP_PATH" = "$PARENT/$ZIP_NAME" ]; then ZIP_PATH="$HOME/Downloads/$ZIP_NAME"; fi
 if [ "$CHECKSUM_EXPLICIT" -eq 0 ] && [ ! -f "$CHECKSUM" ]; then CHECKSUM="$(dirname "$ZIP_PATH")/$CHECKSUM_NAME"; fi
 [ -f "$ZIP_PATH" ] && [ "$(basename "$ZIP_PATH")" = "$ZIP_NAME" ] || fail "Expected the exact $ZIP_NAME build. Keep the original ZIP beside digital-marathon, or use --zip PATH."
@@ -88,6 +89,12 @@ unzip -Z1 "$ZIP_PATH" > "$TMP/entries.txt"
 unzip -Z -l "$ZIP_PATH" | awk '$1 ~ /^l/ {exit 1}' || fail "ZIP symlinks are not permitted."
 awk 'seen[tolower($0)]++ {exit 1} $0 !~ /^digital-marathon\// || $0 ~ /(^|\/)\.\.(\/|$)/ || $0 ~ /\\/ || $0 ~ /(^|\/)\.(\/|$)/ || $0 ~ /\/\// || $0 ~ /[[:cntrl:]:*?\[]/ || tolower($0) ~ /(^|\/)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.[^\/]*)?(\/|$)/ {exit 1}' "$TMP/entries.txt" || fail "ZIP must contain one safe digital-marathon root with no duplicate entries."
 while IFS= read -r entry; do if private_zip_path "$entry"; then fail "Private or QA entry refused in the release ZIP: $entry"; fi; done < "$TMP/entries.txt"
+# A descriptor containing this ZIP's hash cannot be embedded inside that same
+# ZIP. Its self-contained generator travels in this script instead; every
+# publish regenerates the release asset after validating the complete archive.
+if awk 'tolower($0) ~ /(^|\/)digital-marathon-update\.json\/?$/ {found=1} END {exit !found}' "$TMP/entries.txt"; then
+  fail "Do not embed digital-marathon-update.json in its own ZIP. The publisher generates it from the verified build."
+fi
 ACTUAL_SHA="$(shasum -a 256 "$ZIP_PATH" | awk '{print $1}')"
 if [ -n "$CHECKSUM" ]; then
   EXPECTED_SHA="$(awk -v name="$ZIP_NAME" '$2 == name || $2 == "*" name {print $1}' "$CHECKSUM")"
@@ -164,7 +171,30 @@ if [ -z "$CHECKSUM" ]; then
   printf '%s  %s\n' "$ACTUAL_SHA" "$ZIP_NAME" > "$CHECKSUM"
   printf '\nChecksum generated from the checked ZIP; no separate download is required.\n'
 fi
+# The uploaded descriptor and GitHub release use exactly the same notes. JSON
+# strings are serialized locally rather than interpolated into JSON or shell.
+printf 'Digital Marathon v%s\n\nDownload the combined Mac/Windows package, extract it and open the launcher for your computer.\n\nSHA-256: `%s`\n\nSource and owner publishing instructions are included.\n' "$VERSION" "$ACTUAL_SHA" > "$TMP/release-notes.md"
+FEED="$TMP/$FEED_NAME"
+python3 - "$ZIP_PATH" "$ACTUAL_SHA" "$VERSION" "$ZIP_NAME" "$TMP/release-notes.md" "$FEED" <<'FEED_PY'
+from pathlib import Path
+import hashlib, json, re, sys
+archive, expected, version, name, notes_path, destination = sys.argv[1:]
+archive = Path(archive)
+if not re.fullmatch(r'[0-9a-f]{64}', expected): raise SystemExit('Invalid checked ZIP digest for update descriptor.')
+if archive.name != name or name != f'digital-marathon-cross-platform-v{version}-click-to-launch.zip':
+    raise SystemExit('Update descriptor ZIP name/version mismatch.')
+size = archive.stat().st_size
+if size <= 0 or hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
+    raise SystemExit('Checked ZIP changed before update descriptor generation.')
+notes = Path(notes_path).read_text(encoding='utf-8')
+if len(notes) > 6000: raise SystemExit('Release notes must be at most 6000 characters for the update descriptor.')
+payload = {'schema': 1, 'app': 'digital-marathon', 'version': version, 'notes': notes,
+           'asset': {'name': name, 'bytes': size, 'sha256': expected}}
+Path(destination).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+FEED_PY
+FEED_SHA="$(shasum -a 256 "$FEED" | awk '{print $1}')"
 printf '\nVerified Digital Marathon %s\nRepository: %s\nCheckout: %s\nSource files: %s\nZIP: %s\nSHA-256: %s\n' "$VERSION" "$GITHUB_REPO" "$REPO_DIR" "${#SOURCE_FILES[@]}" "$ORIGINAL_ZIP" "$ACTUAL_SHA"
+printf 'Update descriptor generated from the verified ZIP; no separate download is required.\n'
 if [ "$DRY_RUN" -eq 1 ]; then printf '\nDRY RUN PASSED. No checkout, tag, GitHub release or analytics data changed.\n'; exit 0; fi
 printf '\nPublish this verified source and package to GitHub? [y/N] '
 IFS= read -r answer
@@ -182,14 +212,14 @@ git -C "$REPO_DIR" push origin "refs/tags/v$VERSION"
 git -C "$REPO_DIR" ls-remote origin "refs/tags/v$VERSION" "refs/tags/v$VERSION^{}" > "$TMP/published-tag.txt"
 TAG_COMMIT="$(awk -v ref="refs/tags/v$VERSION^{}" '$2 == ref {print $1}' "$TMP/published-tag.txt")"
 [ "$TAG_COMMIT" = "$COMMIT" ] || fail "Remote release tag does not resolve to the reviewed commit. No release was published."
-printf 'Digital Marathon v%s\n\nDownload the combined Mac/Windows package, extract it and open the launcher for your computer.\n\nSHA-256: `%s`\n\nSource and owner publishing instructions are included.\n' "$VERSION" "$ACTUAL_SHA" > "$TMP/release-notes.md"
 gh release create "v$VERSION" --repo "$GITHUB_TARGET" --target "$COMMIT" --verify-tag --title "Digital Marathon v$VERSION" --notes-file "$TMP/release-notes.md" --draft --latest=false
-gh release upload "v$VERSION" "$ZIP_PATH" "$CHECKSUM" --repo "$GITHUB_TARGET"
+gh release upload "v$VERSION" "$ZIP_PATH" "$CHECKSUM" "$FEED" --repo "$GITHUB_TARGET"
 mkdir "$TMP/remote-assets"
-gh release download "v$VERSION" --repo "$GITHUB_TARGET" --pattern "$ZIP_NAME" --pattern "$CHECKSUM_NAME" --dir "$TMP/remote-assets"
+gh release download "v$VERSION" --repo "$GITHUB_TARGET" --pattern "$ZIP_NAME" --pattern "$CHECKSUM_NAME" --pattern "$FEED_NAME" --dir "$TMP/remote-assets"
 [ "$(shasum -a 256 "$TMP/remote-assets/$ZIP_NAME" | awk '{print $1}')" = "$ACTUAL_SHA" ] || fail "Uploaded ZIP failed verification. Release remains a draft; inspect it manually."
 cmp "$CHECKSUM" "$TMP/remote-assets/$CHECKSUM_NAME" >/dev/null || fail "Uploaded checksum failed verification. Release remains a draft."
-[ "$(gh release view "v$VERSION" --repo "$GITHUB_TARGET" --json assets --jq '.assets | length')" = 2 ] || fail "Unexpected draft assets. Inspect the draft before publication."
+cmp "$FEED" "$TMP/remote-assets/$FEED_NAME" >/dev/null && [ "$(shasum -a 256 "$TMP/remote-assets/$FEED_NAME" | awk '{print $1}')" = "$FEED_SHA" ] || fail "Uploaded update descriptor failed verification. Release remains a draft."
+[ "$(gh release view "v$VERSION" --repo "$GITHUB_TARGET" --json assets --jq '.assets | length')" = 3 ] || fail "Unexpected draft assets. Inspect the draft before publication."
 git -C "$REPO_DIR" ls-remote origin "refs/tags/v$VERSION^{}" > "$TMP/verified-tag.txt"
 [ "$(awk '{print $1}' "$TMP/verified-tag.txt")" = "$COMMIT" ] || fail "Release tag changed during upload. The release remains a draft."
 gh release edit "v$VERSION" --repo "$GITHUB_TARGET" --draft=false --latest

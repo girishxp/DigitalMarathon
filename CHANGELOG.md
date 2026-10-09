@@ -1,3 +1,15 @@
+# Digital Marathon 2.1.31
+
+## Reliable checks when GitHub's public API is rate-limited
+
+- Fixes a confirmed shared-network failure: GitHub's unauthenticated API quota was exhausted, returning HTTP 403 even though the public Latest release and verified combined ZIP were available. Reports a GitHub API rate limit accurately instead of implying the internet connection is broken.
+- Adds a fixed same-repository public Releases metadata fallback at latest/download/digital-marathon-update.json. Keeps repository, product/version, safe-path, byte-size, archive CRC and mandatory SHA-256 validation; no GitHub token is included in the app.
+- Generates the schema-1 metadata automatically from the verified ZIP and exact release notes in the owner publisher's temporary directory. Verifies this third release asset before publishing Latest. It is not inside the ZIP and does not require a separate owner download. Mac owner publishing requires Python 3 for safe JSON serialization; Windows uses native PowerShell. Normal app launch needs neither Python nor publishing tools.
+- Checks about 2.5 seconds after startup and every 15 minutes while open. An installed version equal to Latest is up to date and receives no update offer. Older 2.1.29/2.1.30 apps must wait for quota recovery or install this build manually once to gain the new fallback.
+- Updates Help, current documentation and the product guide to 2.1.31. Preserves Mini/Full update presentation, verified background downloads, manual installation, Save & Close safeguards, local session handoff, automatic basic analytics and the approved UI, Pearl & Aqua icon, Classic Award certificate and rounded transparency tabs.
+
+---
+
 # Digital Marathon 2.1.30
 
 ## Updates that respect Mini View

@@ -1,7 +1,7 @@
 # Owner-operated publisher. Uses installed Git/GitHub CLI; no credentials embedded.
 # PowerShell 5.1+ and .NET are included on supported Windows computers.
 $ErrorActionPreference = 'Stop'
-$Version = '2.1.30'
+$Version = '2.1.31'
 $GitHubRepo = 'girishxp/DigitalMarathon'
 # Explicit host keeps an unrelated enterprise login or GH_HOST out of this publisher.
 $GitHubRepoTarget = "github.com/$GitHubRepo"
@@ -13,6 +13,7 @@ $Source = if ($env:DIGITAL_MARATHON_SOURCE) { $env:DIGITAL_MARATHON_SOURCE } els
 # A separate source snapshot is optional; the default comes from the release ZIP.
 $ZipName = "digital-marathon-cross-platform-v$Version-click-to-launch.zip"
 $ChecksumName = "SHA256SUMS-v$Version.txt"
+$FeedName = 'digital-marathon-update.json'
 $ZipPath = if ($env:DIGITAL_MARATHON_ZIP) { $env:DIGITAL_MARATHON_ZIP } else { Join-Path $Parent $ZipName }
 $Checksum = if ($env:DIGITAL_MARATHON_CHECKSUM) { $env:DIGITAL_MARATHON_CHECKSUM } else { Join-Path $Parent $ChecksumName }
 $ChecksumExplicit = [bool]$env:DIGITAL_MARATHON_CHECKSUM
@@ -148,6 +149,7 @@ public static class DigitalMarathonZipCrc {
         if ($Names.ContainsKey($entry.FullName) -or $entry.FullName -cnotmatch '^digital-marathon/' -or $entry.FullName -match '(^|/)\.{1,2}(/|$)|\\|//|[\x00-\x1f\x7f:*?\[]|(^|/)(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.[^/]*)?(/|$)') { throw 'ZIP must contain one safe digital-marathon root with no duplicate entries.' }
         if ((($entry.ExternalAttributes -shr 16) -band 61440) -eq 40960) { throw 'ZIP symlinks are not permitted.' }
         if (Private-ZipPath $entry.FullName) { throw "Private or QA entry refused in the release ZIP: $($entry.FullName)" }
+        if ($entry.FullName -match '(^|/)digital-marathon-update\.json/?$') { throw 'Do not embed digital-marathon-update.json in its own ZIP. The publisher generates it from the verified build.' }
         $Names[$entry.FullName]=$true
     }
     $ActualSha=(Get-FileHash -LiteralPath $ZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -225,7 +227,21 @@ public static class DigitalMarathonZipCrc {
         [IO.File]::WriteAllText($Checksum,"$ActualSha  $ZipName`n",$Utf8)
         Write-Host 'Checksum generated from the checked ZIP; no separate download is required.'
     }
+    # The generator is already inside this publisher in the combined ZIP. A
+    # descriptor containing the whole ZIP hash cannot be embedded in itself.
+    # Generate it locally from the checked archive and the exact release body.
+    $notes=Join-Path $Temp 'release-notes.md'
+    $ReleaseBody="Digital Marathon v$Version`n`nDownload the combined Mac/Windows package, extract it and open the launcher for your computer.`n`nSHA-256: ``$ActualSha```n`nSource and owner publishing instructions are included.`n"
+    if ($ReleaseBody.Length -gt 6000) { throw 'Release notes must be at most 6000 characters for the update descriptor.' }
+    [IO.File]::WriteAllText($notes,$ReleaseBody,$Utf8)
+    $ZipBytes=(Get-Item -LiteralPath $ZipPath).Length
+    if ($ZipBytes -le 0 -or $ActualSha -cnotmatch '^[0-9a-f]{64}$' -or (Get-FileHash -LiteralPath $ZipPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $ActualSha) { throw 'Checked ZIP changed before update descriptor generation.' }
+    $Feed=Join-Path $Temp $FeedName
+    $Descriptor=[ordered]@{ schema=1; app='digital-marathon'; version=$Version; notes=$ReleaseBody; asset=[ordered]@{ name=$ZipName; bytes=$ZipBytes; sha256=$ActualSha } }
+    [IO.File]::WriteAllText($Feed,($Descriptor | ConvertTo-Json -Depth 4)+"`n",$Utf8)
+    $FeedSha=(Get-FileHash -LiteralPath $Feed -Algorithm SHA256).Hash.ToLowerInvariant()
     Write-Host "`nVerified Digital Marathon $Version`nRepository: $GitHubRepo`nCheckout: $RepoDir`nSource files: $($SourceFiles.Count)`nZIP: $OriginalZip`nSHA-256: $ActualSha"
+    Write-Host 'Update descriptor generated from the verified ZIP; no separate download is required.'
     if ($DryRun) { Write-Host '`nDRY RUN PASSED. No checkout, tag, GitHub release or analytics data changed.'; exit 0 }
     if ((Read-Host 'Publish this verified source and package to GitHub? [y/N]') -notmatch '^(y|yes)$') { Write-Host 'Cancelled. Nothing changed.'; exit 0 }
     foreach ($relative in $Tracked) { if (-not (Test-Path -LiteralPath (Join-Path $Source $relative) -PathType Leaf)) { Remove-Item -LiteralPath (Join-Path $RepoDir $relative) } }
@@ -240,14 +256,14 @@ public static class DigitalMarathonZipCrc {
     $remoteTag=Run-Tool 'git' @('-C',$RepoDir,'ls-remote','origin',"refs/tags/v$Version",$tagRef)
     $tagCommit=(($remoteTag -split '\r?\n' | Where-Object { ($_ -split '\s+')[1] -eq $tagRef } | ForEach-Object { ($_ -split '\s+')[0] }) -join '')
     if ($tagCommit -ne $commit) { throw 'Remote release tag does not resolve to the reviewed commit. No release was published.' }
-    $notes=Join-Path $Temp 'release-notes.md'
-    [IO.File]::WriteAllText($notes,"Digital Marathon v$Version`n`nDownload the combined Mac/Windows package, extract it and open the launcher for your computer.`n`nSHA-256: ``$ActualSha```n`nSource and owner publishing instructions are included.`n",$Utf8)
     [void](Run-Tool 'gh' @('release','create',"v$Version",'--repo',$GitHubRepoTarget,'--target',$commit,'--verify-tag','--title',"Digital Marathon v$Version",'--notes-file',$notes,'--draft','--latest=false'))
-    [void](Run-Tool 'gh' @('release','upload',"v$Version",$ZipPath,$Checksum,'--repo',$GitHubRepoTarget))
+    [void](Run-Tool 'gh' @('release','upload',"v$Version",$ZipPath,$Checksum,$Feed,'--repo',$GitHubRepoTarget))
     $remote=Join-Path $Temp 'remote-assets'; [void](New-Item -ItemType Directory -Path $remote)
-    [void](Run-Tool 'gh' @('release','download',"v$Version",'--repo',$GitHubRepoTarget,'--pattern',$ZipName,'--pattern',$ChecksumName,'--dir',$remote))
+    [void](Run-Tool 'gh' @('release','download',"v$Version",'--repo',$GitHubRepoTarget,'--pattern',$ZipName,'--pattern',$ChecksumName,'--pattern',$FeedName,'--dir',$remote))
     if ((Get-FileHash -LiteralPath (Join-Path $remote $ZipName) -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ActualSha -or (Get-FileHash -LiteralPath (Join-Path $remote $ChecksumName) -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $Checksum -Algorithm SHA256).Hash) { throw 'Uploaded asset verification failed. Release remains a draft; inspect it manually.' }
-    if ((Run-Tool 'gh' @('release','view',"v$Version",'--repo',$GitHubRepoTarget,'--json','assets','--jq','.assets | length')) -ne '2') { throw 'Unexpected draft assets. Inspect it before publication.' }
+    $RemoteFeed=Join-Path $remote $FeedName
+    if ([Convert]::ToBase64String([IO.File]::ReadAllBytes($Feed)) -cne [Convert]::ToBase64String([IO.File]::ReadAllBytes($RemoteFeed)) -or (Get-FileHash -LiteralPath $RemoteFeed -Algorithm SHA256).Hash.ToLowerInvariant() -cne $FeedSha) { throw 'Uploaded update descriptor failed verification. Release remains a draft.' }
+    if ((Run-Tool 'gh' @('release','view',"v$Version",'--repo',$GitHubRepoTarget,'--json','assets','--jq','.assets | length')) -ne '3') { throw 'Unexpected draft assets. Inspect it before publication.' }
     $verifiedTag=Run-Tool 'git' @('-C',$RepoDir,'ls-remote','origin',$tagRef)
     if (($verifiedTag -split '\s+')[0] -ne $commit) { throw 'Release tag changed during upload. The release remains a draft.' }
     [void](Run-Tool 'gh' @('release','edit',"v$Version",'--repo',$GitHubRepoTarget,'--draft=false','--latest'))

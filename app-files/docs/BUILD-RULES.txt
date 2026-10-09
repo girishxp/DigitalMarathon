@@ -45,7 +45,7 @@ source snapshot or checksum download is required. If a source snapshot or
 checksum is explicitly supplied, validate it strictly against the approved
 ZIP. Generate the checksum asset temporarily when no external file is supplied.
 Keep source credentials, runtimes, binaries, activity data and QA files out of
-the derived repository snapshot. Verify both uploaded release assets before
+the derived repository snapshot. Verify the ZIP, checksum and public metadata release assets before
 publishing Latest. App users still need only the complete combined ZIP.
 
 UPDATE PRESENTATION IN FULL AND MINI VIEW
@@ -72,3 +72,28 @@ session handoff before closing. Saving failure must keep the app open/running.
 Resume the session totals, start time and running/paused state only on a next
 startup on the same local calendar day; across midnight use normal rollover.
 Keep the handoff local. Do not claim automatic install/reopen or hot replacement.
+
+PUBLIC RELEASE METADATA FALLBACK
+
+Generate digital-marathon-update.json in the publisher temporary directory from
+the verified original ZIP and exact release body. Upload and verify it as the
+third draft release asset before marking Latest. Do not embed it in the ZIP: an
+archive cannot contain its own whole-archive SHA-256. No separate metadata or
+checksum download is required for the owner; generator logic stays in the ZIP.
+
+Use schema=1, app=digital-marathon, the version, plain notes of at most 6000
+characters, and asset={name,bytes,sha256}. Name must be the exact combined ZIP
+filename; bytes the verified byte count; sha256 64 lowercase hex characters
+without a prefix. Include no URLs. The app derives the fixed same-repository
+GitHub Releases download URLs and enforces metadata and archive validation.
+The only fallback is:
+  https://github.com/girishxp/DigitalMarathon/releases/latest/download/digital-marathon-update.json
+
+Keep GitHub tokens out of distributed apps. Mac owner publishing requires
+Python 3 for safe JSON serialization; Windows uses native PowerShell JSON.
+Normal Mac/Windows launches continue to use bundled Java without Python.
+Report an exhausted public API quota accurately; do not claim internet failure.
+Matching installed and Latest versions are up to date, without an update offer.
+Preserve checks about 2.5 seconds after startup and every 15 minutes while open.
+Older 2.1.29/2.1.30 builds need quota recovery or a one-time manual 2.1.31
+installation to acquire the fallback; do not promise a remote updater hot patch.

@@ -56,6 +56,7 @@ public final class UpdateManager implements AutoCloseable {
     }
 
     static final URI API = URI.create("https://api.github.com/repos/girishxp/DigitalMarathon/releases/latest");
+    static final URI UPDATE_METADATA = URI.create("https://github.com/girishxp/DigitalMarathon/releases/latest/download/digital-marathon-update.json");
     static final String DOWNLOAD_PREFIX = "https://github.com/girishxp/DigitalMarathon/releases/download/v";
     static final String RELEASE_PREFIX = "https://github.com/girishxp/DigitalMarathon/releases/tag/v";
     private static final Pattern VERSION = Pattern.compile("(?:0|[1-9][0-9]{0,8})\\.(?:0|[1-9][0-9]{0,8})\\.(?:0|[1-9][0-9]{0,8})");
@@ -63,6 +64,7 @@ public final class UpdateManager implements AutoCloseable {
     private static final long MAX_DOWNLOAD = 512L * 1024 * 1024;
     private static final long MAX_EXPANDED = 3L * 1024 * 1024 * 1024;
     private static final long MAX_ENTRY = 1024L * 1024 * 1024;
+    private static final int MAX_METADATA = 64 * 1024;
     private static final Set<String> DOWNLOAD_HOSTS = Set.of("github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com");
     private final String currentVersion;
     private final Path dataDirectory;
@@ -210,37 +212,14 @@ public final class UpdateManager implements AutoCloseable {
         if (closed || downloading.get() || (!manual && !automatic)) return;
         event("update_check_started", Map.of("manual", manual));
         try {
-            Map<String, Object> release = JsonCodec.parseObject(readText(API, true, 5 * 1024 * 1024));
-            if (!Boolean.FALSE.equals(release.get("draft")) || !Boolean.FALSE.equals(release.get("prerelease"))) throw problem("unpublished_release");
-            String tag = string(release, "tag_name");
-            if (!tag.startsWith("v") || !VERSION.matcher(tag.substring(1)).matches()) throw problem("invalid_version");
-            String version = tag.substring(1);
+            Release found = readPublishedRelease();
+            String version = found.version();
             if (compareVersions(version, currentVersion) <= 0) {
                 latestRelease = null;
                 event("update_check_completed", Map.of("manual", manual, "latest_version", version));
                 checked(null, manual, "Digital Marathon " + currentVersion + " is up to date.");
                 return;
             }
-            List<?> assets = release.get("assets") instanceof List<?> list ? list : Collections.emptyList();
-            Map<String, Object> asset = exactAsset(assets, assetName(version));
-            String downloadUrl = string(asset, "browser_download_url");
-            validateAssetUri(downloadUrl, version, assetName(version));
-            long size = integer(asset.get("size"));
-            if (size <= 0 || size > MAX_DOWNLOAD) throw problem("invalid_size");
-            String digest = string(asset, "digest");
-            String sha = "";
-            String checksumUrl = "";
-            if (digest.startsWith("sha256:") && SHA256.matcher(digest.substring(7)).matches()) sha = digest.substring(7).toLowerCase(Locale.ROOT);
-            if (sha.isEmpty()) {
-                Map<String, Object> checksum = exactAsset(assets, checksumName(version));
-                checksumUrl = string(checksum, "browser_download_url");
-                validateAssetUri(checksumUrl, version, checksumName(version));
-                if (integer(checksum.get("size")) > 128 * 1024) throw problem("invalid_checksum");
-                sha = checksumFor(readText(URI.create(checksumUrl), false, 128 * 1024), assetName(version));
-            }
-            String notes = string(release, "body");
-            if (notes.length() > 6000) notes = notes.substring(0, 6000);
-            Release found = new Release(version, notes, RELEASE_PREFIX + version, downloadUrl, size, sha, checksumUrl);
             latestRelease = found;
             event("update_check_completed", Map.of("manual", manual, "latest_version", version));
             synchronized (this) {
@@ -257,10 +236,98 @@ public final class UpdateManager implements AutoCloseable {
             // A transient check failure cannot invalidate a previously checked release or ready ZIP.
             String code = failureCode(ex);
             event("update_error", Map.of("stage", "check", "error_code", code, "manual", manual));
-            checkFailed(code, manual
-                    ? "We could not check for a published update. Please check your connection and try again later."
-                    : "Automatic update check could not finish. It will try again later.", manual);
+            checkFailed(code, checkFailureMessage(code, manual), manual);
         }
+    }
+
+    /** A published static asset avoids API quotas without accepting another repository or origin. */
+    private Release readPublishedRelease() throws IOException {
+        String json;
+        try {
+            json = readText(API, true, 5 * 1024 * 1024);
+        } catch (IOException apiFailure) {
+            if (!mayUseMetadataFallback(apiFailure)) throw apiFailure;
+            try { return readUpdateMetadata(); }
+            catch (IOException | IllegalArgumentException metadataFailure) {
+                throw problem(failureCode(apiFailure).equals("api_rate_limited")
+                        ? "rate_limit_fallback_unavailable" : "api_fallback_unavailable");
+            }
+        }
+        // Validation is deliberately outside the transport fallback: a bad API release is rejected.
+        Map<String, Object> release = JsonCodec.parseObject(json);
+        if (!Boolean.FALSE.equals(release.get("draft")) || !Boolean.FALSE.equals(release.get("prerelease"))) throw problem("unpublished_release");
+        String tag = string(release, "tag_name");
+        if (!tag.startsWith("v") || !VERSION.matcher(tag.substring(1)).matches()) throw problem("invalid_version");
+        String version = tag.substring(1);
+        if (compareVersions(version, currentVersion) <= 0) {
+            return new Release(version, "", RELEASE_PREFIX + version, "", 0, "", "");
+        }
+        List<?> assets = release.get("assets") instanceof List<?> list ? list : Collections.emptyList();
+        Map<String, Object> asset = exactAsset(assets, assetName(version));
+        String downloadUrl = string(asset, "browser_download_url");
+        validateAssetUri(downloadUrl, version, assetName(version));
+        long size = integer(asset.get("size"));
+        if (size <= 0 || size > MAX_DOWNLOAD) throw problem("invalid_size");
+        String digest = string(asset, "digest");
+        String sha = "";
+        String checksumUrl = "";
+        if (digest.startsWith("sha256:") && SHA256.matcher(digest.substring(7)).matches()) sha = digest.substring(7).toLowerCase(Locale.ROOT);
+        if (sha.isEmpty()) {
+            Map<String, Object> checksum = exactAsset(assets, checksumName(version));
+            checksumUrl = string(checksum, "browser_download_url");
+            validateAssetUri(checksumUrl, version, checksumName(version));
+            if (integer(checksum.get("size")) > 128 * 1024) throw problem("invalid_checksum");
+            sha = checksumFor(readText(URI.create(checksumUrl), false, 128 * 1024), assetName(version));
+        }
+        String notes = string(release, "body");
+        if (notes.length() > 6000) notes = notes.substring(0, 6000);
+        return new Release(version, notes, RELEASE_PREFIX + version, downloadUrl, size, sha, checksumUrl);
+    }
+
+    private Release readUpdateMetadata() throws IOException {
+        Map<String, Object> metadata = JsonCodec.parseObject(readText(UPDATE_METADATA, false, MAX_METADATA));
+        if (!Long.valueOf(1).equals(metadata.get("schema")) || !"digital-marathon".equals(metadata.get("app"))) throw problem("invalid_update_metadata");
+        String version = string(metadata, "version");
+        if (!VERSION.matcher(version).matches()) throw problem("invalid_update_metadata");
+        if (!(metadata.get("notes") instanceof String notes) || notes.length() > 6000
+                || !(metadata.get("asset") instanceof Map<?, ?> asset)) throw problem("invalid_update_metadata");
+        if (!assetName(version).equals(asset.get("name"))) throw problem("invalid_update_metadata");
+        long size = integer(asset.get("bytes"));
+        if (size <= 0 || size > MAX_DOWNLOAD) throw problem("invalid_size");
+        if (!(asset.get("sha256") instanceof String sha) || !SHA256.matcher(sha).matches()) throw problem("missing_checksum");
+        String downloadUrl = DOWNLOAD_PREFIX + version + "/" + assetName(version);
+        // The descriptor cannot override the fixed product/repository URLs.
+        if (metadata.containsKey("releaseUrl") && !(RELEASE_PREFIX + version).equals(metadata.get("releaseUrl"))) throw problem("invalid_origin");
+        if (metadata.containsKey("downloadUrl") && !downloadUrl.equals(metadata.get("downloadUrl"))) throw problem("invalid_origin");
+        validateAssetUri(downloadUrl, version, assetName(version));
+        return new Release(version, notes, RELEASE_PREFIX + version, downloadUrl, size,
+                sha.toLowerCase(Locale.ROOT), "");
+    }
+
+    private static boolean mayUseMetadataFallback(IOException failure) {
+        if (failure instanceof UpdateFailure known) {
+            return known.code.equals("api_rate_limited") || known.code.equals("api_unavailable")
+                    || known.code.equals("timeout");
+        }
+        // Connection, DNS and TLS failures may be specific to api.github.com. TLS remains enforced.
+        return true;
+    }
+
+    private static String checkFailureMessage(String code, boolean manual) {
+        if (code.equals("rate_limit_fallback_unavailable")) {
+            return "GitHub temporarily limited automatic update checks, and valid published fallback metadata is unavailable. "
+                    + "Your app and history are unchanged. Open the GitHub release page to review updates manually; checks will retry later.";
+        }
+        if (code.equals("api_fallback_unavailable")) {
+            return "GitHub's update service could not be reached, and valid published fallback metadata is unavailable. "
+                    + "Your app and history are unchanged. Open the GitHub release page to review updates manually or try again later.";
+        }
+        if (code.equals("api_access_denied")) {
+            return "GitHub denied the update check. Your app and history are unchanged. "
+                    + "Open the GitHub release page to review updates manually or try again later.";
+        }
+        return manual ? "We could not verify a published update. Your app and history are unchanged. Please try again later."
+                : "Automatic update check could not finish. It will try again later.";
     }
 
     private void validateRelease(Release release) throws IOException {
@@ -289,7 +356,15 @@ public final class UpdateManager implements AutoCloseable {
                 try { endpoint = endpoint.resolve(location); } catch (IllegalArgumentException ex) { throw problem("invalid_redirect"); }
                 continue;
             }
-            if (response.status() != 200) { response.close(); throw problem(response.status() == 404 ? "release_missing" : "http_error"); }
+            if (response.status() != 200) {
+                String code = response.status() == 404 ? "release_missing" : "http_error";
+                if (api && (response.status() == 429 || (response.status() == 403
+                        && ("0".equals(response.header("X-RateLimit-Remaining").trim())
+                        || !response.header("Retry-After").isBlank())))) code = "api_rate_limited";
+                else if (api && response.status() >= 500 && response.status() <= 599) code = "api_unavailable";
+                else if (api && response.status() == 403) code = "api_access_denied";
+                response.close(); throw problem(code);
+            }
             return response;
         }
         throw problem("invalid_redirect");
@@ -547,6 +622,7 @@ public final class UpdateManager implements AutoCloseable {
     interface Transport { Response get(URI uri, String version) throws IOException; }
     interface Response extends AutoCloseable {
         int status(); String location(); long contentLength(); InputStream body() throws IOException;
+        default String header(String name) { return ""; }
         @Override void close() throws IOException;
     }
     private static final class HttpsTransport implements Transport {
@@ -566,6 +642,9 @@ public final class UpdateManager implements AutoCloseable {
                     public int status() { return status; }
                     public String location() { return connection.getHeaderField("Location"); }
                     public long contentLength() { return connection.getContentLengthLong(); }
+                    public String header(String name) {
+                        String value = connection.getHeaderField(name); return value == null ? "" : value;
+                    }
                     public InputStream body() throws IOException { if (input == null) input = connection.getInputStream(); return input; }
                     public void close() throws IOException { try { if (input != null) input.close(); } finally { connection.disconnect(); } }
                 };

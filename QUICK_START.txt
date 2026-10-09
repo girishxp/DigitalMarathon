@@ -1,10 +1,10 @@
-DIGITAL MARATHON 2.1.30 - QUICK START
+DIGITAL MARATHON 2.1.31 - QUICK START
 ====================================
 
 START HERE
 ----------
 Use the single complete combined ZIP (local package or GitHub Release asset):
-  digital-marathon-cross-platform-v2.1.30-click-to-launch.zip
+  digital-marathon-cross-platform-v2.1.31-click-to-launch.zip
 Source code (zip/tar.gz) archives lack the runtimes/JAR for direct launch.
 The public release becomes available after owner publication.
 
@@ -209,7 +209,7 @@ Saved activity data stays on your computer:
 
 Moving the launch folder or Mac app does not move or erase saved history.
 
-For the version 2.1.30 product features, launch and usage guide, open:
+For the version 2.1.31 product features, launch and usage guide, open:
 
    app-files/docs/Digital-Marathon-Product-Guide.pdf
 
@@ -221,10 +221,24 @@ notices are included in app-files and the runtimes.
 UPDATES AND BASIC USAGE
 -----------------------
 Open Help > About and choose Check for updates for a manual check.
-Automatic checks run at startup and every 15 minutes while the app is open.
+Automatic checks begin about 2.5 seconds after startup and repeat every 15
+minutes while the app is open.
 Choose Update Now, Remind Me Later (24 hours), or Skip This Version.
 A manual check can still show a skipped release. There are no notifications
 while the app is closed. Downloads require a matching release SHA-256 checksum.
+
+UPDATE CHECKS ON SHARED NETWORKS
+GitHub's public API allows 60 requests/hour per originating IP. Several apps
+or people on one network can share this limit. Version 2.1.31 can use public
+release metadata from the same repository when the API is unavailable or
+rate-limited. It needs no GitHub sign-in/token and retains size, SHA-256, safe
+path, product/version and archive validation. A limit is reported accurately;
+it does not mean the internet connection is broken. Matching installed/Latest
+versions are up to date, with no update offer.
+
+Older 2.1.29/2.1.30 apps need a new build to gain this fallback. After the quota
+resets, reopen or use Help > About > Check for updates. If this happens often,
+download and install 2.1.31 once from GitHub Release assets.
 
 Mini View keeps its existing size and controls. A compact update notice and
 Full View badge indicate when an update needs attention. No update panel or
@@ -277,12 +291,16 @@ OWNER PUBLISHING
 Use Publish Digital Marathon.command on Mac and
 Publish Digital Marathon - Windows.bat on Windows. A .command file does not
 run on Windows; Publish PulseStudio.command belongs to the PulseStudio app.
-These owner tools require Git and GitHub CLI. Keep the original combined ZIP
+These owner tools require Git and GitHub CLI. The Mac publisher also requires
+Python 3 for safe JSON generation; Windows uses built-in PowerShell. Normal
+.app/.bat use needs no Python or publishing tools. Keep the original combined ZIP
 beside the extracted folder or in Downloads, or select it with --zip. They
 derive sanitized source from that ZIP and compute a temporary checksum when no
 separate one is supplied. No separate source/checksum download is required.
 Explicitly supplied source or checksum files must pass strict verification.
-They support --dry-run and verify a draft before marking it Latest. See
+They generate a public update-metadata asset temporarily and verify the ZIP,
+checksum and metadata uploads before marking the draft Latest. Metadata is not
+inside the ZIP; users still need only the combined ZIP. They support --dry-run. See
 PUBLISHING.md. Normal app use needs neither publishing tool.
 
 Publishing a newer Release as Latest from either Digital Marathon publisher

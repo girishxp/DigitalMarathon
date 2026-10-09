@@ -1,6 +1,6 @@
 # Updates and basic usage analytics
 
-Digital Marathon 2.1.30 keeps activity history on your computer. GitHub delivers releases; basic usage analytics starts automatically at launch to help the owner understand installations, versions and feature use. There is no first-run choice or user-facing analytics toggle. Manual update checks are in **Help > About > Check for updates**.
+Digital Marathon 2.1.31 keeps activity history on your computer. GitHub delivers releases; basic usage analytics starts automatically at launch to help the owner understand installations, versions and feature use. There is no first-run choice or user-facing analytics toggle. Manual update checks are in **Help > About > Check for updates**.
 
 ## Activity data stays local
 
@@ -10,8 +10,8 @@ Mouse distance, key presses, mouse clicks, active time, ranges, timestamps in ac
 
 | Connection | Information used |
 |---|---|
-| GitHub update check | Requests the latest release metadata for `girishxp/DigitalMarathon`; the User-Agent includes the app version, and GitHub receives ordinary network-request information. |
-| GitHub package download | Downloads the selected complete combined Mac/Windows release ZIP and its SHA-256 checksum. GitHub exposes aggregate asset-download counts to the owner. |
+| GitHub update check | Requests the latest release API metadata for `girishxp/DigitalMarathon`, with a fixed same-repository public release-metadata fallback if the API is unavailable or rate-limited. No GitHub token or sign-in is used; the User-Agent includes the app version, and GitHub receives ordinary network-request information. |
+| GitHub package download | Downloads the selected complete combined Mac/Windows release ZIP. Its mandatory SHA-256 comes from the verified release checksum or fixed public release metadata. GitHub exposes aggregate asset-download counts to the owner. |
 | PostHog basic usage | Basic product/runtime details, random installation/session IDs, launch/session timing, and limited state/feature/update/error categories listed below. |
 
 Installation IDs are generated randomly. They are not based on a name, email, device serial number or hardware fingerprint. Feature events indicate that a control was used; they do not include input counts, activity totals, selected ranges, text or certificate names. No session recording, autocapture or user profiles are required for this integration.
@@ -24,10 +24,12 @@ Like any network connection, the source IP exists in transit and can reach the c
 
 Mini View uses a compact notice and Full View badge, with no update dialog over the small window. Reviewing an update restores Full View before opening one shared nonmodal panel for release notes, progress and status. **Back to Mini** closes the panel before restoring the previous view, position, transparency, Always on Top setting and session. Repeated actions are guarded against duplicate panels/downloads.
 
-- **Automatic update checks**: checks at startup and every 15 minutes while the app is running. A manual **Check for updates** action is in **Help > About**. Version 2.1.30 restores automatic checks for older saved disabled preferences; no update-check switch is shown.
+- **Automatic update checks**: checks about 2.5 seconds after startup and every 15 minutes while the app is running. A manual **Check for updates** action is in **Help > About**. Version 2.1.31 restores automatic checks for older saved disabled preferences; no update-check switch is shown.
 - **Update Now**: downloads a newer release in the background only after your action. Tracking and the current session continue. The package is accepted only when its SHA-256 matches the release checksum.
 - **Remind Me Later**: postpones the same release prompt for 24 hours.
 - **Skip This Version**: suppresses automatic prompts for that release. A manual check can still show it.
+
+The fallback metadata describes only the app release, notes, ZIP filename, byte size and SHA-256; it contains no activity or analytics data. Matching installed and Latest versions return up to date, without an update offer. A public API rate limit is reported as such. Older 2.1.29/2.1.30 installations must wait for the quota to reset or install 2.1.31 manually once to gain this fallback.
 
 The shared panel scrolls release notes and supports keyboard navigation in both themes. **Back to Mini** or **Close Review** closes it while a download continues; errors offer **Retry**. Release-source, product/version, safe-path, archive CRC and SHA-256 checks are preserved.
 

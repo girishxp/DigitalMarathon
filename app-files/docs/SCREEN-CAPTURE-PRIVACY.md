@@ -1,4 +1,4 @@
-# Screen Capture Privacy - Digital Marathon 2.1.30
+# Screen Capture Privacy - Digital Marathon 2.1.31
 
 Digital Marathon's Full View includes the **Hide from screenshots & sharing** toggle. Both Full View and Mini View show the same small shield status indicator in the top toolbar, next to the slim **0-75% transparency bar with its rounded tab handle**. The bar and surrounding controls keep their existing sizes. Mini View has no privacy toggle; change the setting in Full View. A checked/accented shield means protection is currently applied; the neutral shield means it is off or could not be applied. The setting is off by default.
 

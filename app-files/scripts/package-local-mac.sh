@@ -35,6 +35,12 @@ required=[package/'.gitignore',package/'.gitattributes',
           package/'app-files/docs/Digital-Marathon-Product-Guide.pdf']
 for path in required:
     if not path.is_file() or path.stat().st_size==0: raise SystemExit('Required launch component missing: '+str(path.relative_to(package)))
+mac_publisher=(package/'app-files/scripts/publish-github.sh').read_text()
+windows_publisher=(package/'app-files/scripts/publish-github.ps1').read_text()
+if not re.search(r'^VERSION='+re.escape(version)+r'$',mac_publisher,re.M) or not re.search(r"^\$Version = '"+re.escape(version)+r"'$",windows_publisher,re.M):
+    raise SystemExit('Packaged publisher version differs from the launch package.')
+if 'FEED_NAME="digital-marathon-update.json"' not in mac_publisher or "$FeedName = 'digital-marathon-update.json'" not in windows_publisher:
+    raise SystemExit('The combined ZIP must include its self-contained update descriptor generators.')
 info=plistlib.loads((app/'Contents/Info.plist').read_bytes())
 if info.get('CFBundleIdentifier')!='com.girishgupta.inputactivitytracker' or any(info.get(key)!=version for key in ('CFBundleVersion','CFBundleShortVersionString')):
     raise SystemExit('Mac bundle product/version mismatch.')
@@ -73,6 +79,8 @@ for path in package.rglob('*'):
     if path.is_symlink(): raise SystemExit('Symlinks are not permitted in this shared local package: '+name)
     if path.is_file():
         if private.search(name): raise SystemExit('Private/temporary file refused: '+name)
+        if path.name.lower()=='digital-marathon-update.json':
+            raise SystemExit('Do not embed a whole-ZIP digest descriptor in itself; the included publishers generate it after verification.')
         files[name]=path
 subprocess.run(['/usr/bin/codesign','--verify','--deep','--strict','--verbose=2',str(app)],check=True)
 attrs=subprocess.check_output(['/usr/bin/xattr','-r',str(app)],text=True)
